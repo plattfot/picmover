@@ -43,9 +43,14 @@ class PicMover:
         self.TARGET_IMAGE_PATH = ROOT_PATH+'/Bilder' 
         self.TARGET_VIDEO_PATH = ROOT_PATH+'/Video' 
         self.IMAGE_POOL_PATH = os.getcwd() # for now
-        self.WRITEPATH = []
+        self.writepath = {}
+        self.mov_keys = {}
+        self.img_keys = {}
         self.verbose = False
         self.move = False
+        self.dry_run = False
+        self.camera_model = 'D7000'
+        self.camera_maker = 'Nikon'
     # checks if a directory exists, if not it creates it
     def ensure_dir(self, f):
         d = os.path.dirname(f)
@@ -61,8 +66,7 @@ class PicMover:
 
     # First check if the path exists, if true; move the file 
     # Only if the file doesn't exists at that location 
-    def move_file(self,filename, root_path ):
-        writepath = root_path + self.WRITEPATH
+    def move_file(self,filename, writepath ):
         if (filename.find(".NEF") > -1):
             writepath += "raw/"
         elif (filename.find(".jpg") > -1):
@@ -94,41 +98,45 @@ class PicMover:
         else : 
             usa =""
 
-        self.WRITEPATH += usa
+        self.writepath += usa
 
-    def process_img(self,filename):
-    
-        # go to the correct folder e.g. ~/Nikon/D7000/2011/
-            # Get the metadata from the image
-        metadata = pyexiv2.ImageMetadata(filename)
-        metadata.read()
-        # Extract usfull information from the metadata object
-        date = metadata['Exif.Image.DateTime'].value
-        userComment =  metadata['Exif.Photo.UserComment'].human_value
-        userComment = userComment.strip()
+    def add_path(self, metadata, date, img_type ):
+        #userComment =  metadata['Exif.Photo.UserComment'].human_value
+        #userComment = userComment.strip()
             
         camera = metadata['Exif.Image.Model'].human_value
         camera = camera.split()
       
-        # go to the correct folder e.g. ~/Nikon/D7000/2011/
-        self.WRITEPATH = '/' + camera[0].capitalize()+'/'+     \
-            camera[1]+'/'+                  \
+        path = '/' + camera[0].capitalize()+'/'+ \
+            camera[1]+'/'+                       \
             str( date.year )+'/'
-        
-        # create the folder name for the image e.g 2011-02-21 Test
-        imageDir = str(date.date() ) + ' ' + userComment +'/' 
-        self.check_if_in_us(date)
-        self.WRITEPATH = self.WRITEPATH + imageDir
-        
-        #print filename
-        # Move file to the new path
-        self.move_file(filename, self.TARGET_IMAGE_PATH )  
+        key = str( date.date() )
+        # Ask for name 
+        name = raw_input("["+img_type+"] Name of event ( " + key +" <name> ): ")
+        # Add date + name
+        path += str(date.date() ) + ' ' + name +'/' 
 
-    def print_process(self,type_name, index, filenames, filenames_size):
-        print "Processing",type_name ,":",filenames[index], \
-            " ["+str(index+1)+"/"+str(filenames_size)+"]"
+        # Add path to dict
+        self.writepath[ key ] = path
+       
+    def add_path_img( self, filename, img_type ):
+        # go to the correct folder e.g. ~/Nikon/D7000/2011/
+        # Get the metadata from the image
+        metadata = pyexiv2.ImageMetadata(filename)
+        metadata.read()
+        # Extract usfull information from the metadata object
+        date = metadata['Exif.Image.DateTime'].value
 
-    def process_mov(self,filename):
+        key = str( date.date() )
+        
+        # Hash key to filename to avoid parse metadata twice
+        self.img_keys[ filename ] = key
+
+        if key not in self.writepath:
+            self.add_path( metadata, date, img_type )
+
+    def add_path_mov( self, filename ):
+        
         # Kind of complicated way of of checking the date on the movie
         # A naive way to move the .mov file
 
@@ -156,32 +164,75 @@ class PicMover:
             pos = line.find(test_str)
             if  pos > -1 :
                date = line[start + pos:start + pos + end]
-        if(len(date)!= 0):
-            #date = datetime.datetime(int(date[0:4]), \ 
-            #                         int(date[5:7]), \
-            #                         int(date[8:10]))
-            if self.WRITEPATH.find(date) > -1 :
-                self.move_file(filename, self.TARGET_VIDEO_PATH )
                
-            else :
-                #if os.getenv("PMV_CAMERA_MODEL")==None:
-                    
+        if( len(date)== 0 ):
+            print "Didn't find any date"
+            date = raw_input("[MOV] Please type in year (YYYY): ")
+            date += '-' + raw_input("[MOV] Please type in month (MM): ")
+            date += '-' + raw_input("[MOV] Please type in day (DD): ")
+        # Hash realname to avoid parsing the metadata twice
+        self.mov_keys[ realname ] = date
 
-                print "Error: .Mov and target path missmatched!"
-                
+        if date not in self.writepath :
+            path = '/' + self.camera_maker +'/'+ self.camera_model + '/' + date[0:4] + '/'
+            name = raw_input("[MOV] Name of event ( " + date +" <name> ): ")
+            # Add date + name
+            path += date + ' ' + name +'/' 
+
+            
+    def process_img(self,filename):
+    
+        key = self.img_keys[filename]
+        path = self.TARGET_IMAGE_PATH + self.writepath[ key ]
+        # Move file to the new path
+        self.move_file(filename, path )  
+
+    def process_mov(self,filename):
+        
+        date = self.mov_keys[filename]
+        if date in self.writepath:
+
+            path = self.TARGET_VIDEO_PATH + self.writepath[ date ]
+            self.move_file(filename, path )
         else :
-            print "Error: Didn't find a creation date!"
+            raise RunTimeError( "Didn't find the path matching the date!")
+
+
+    def print_process(self,type_name, index, filenames, filenames_size):
+        print "Processing",type_name ,":",filenames[index], \
+            " ["+str(index+1)+"/"+str(filenames_size)+"]"
+
     # moves the file based on metadata (user comment and date)
     def exe(self):
         filenames =  glob.glob(self.IMAGE_POOL_PATH+'/'+'*.NEF')
-        filenames += glob.glob(self.IMAGE_POOL_PATH+'/'+'*.MOV')  
         filenames += glob.glob(self.IMAGE_POOL_PATH+'/'+'*.jpg')       
+        filenames += glob.glob(self.IMAGE_POOL_PATH+'/'+'*.MOV')  
+
         filenames_size = len(filenames)
-        if filenames_size == 0 : print "No files found"
+        if filenames_size == 0 : 
+            print "No files found, exit program."
+            return
+        # Scan for paths
+        if self.verbose:
+            print "Scaning for paths..."
         for i in range(filenames_size):
             
             filenames[i] = self.strip_path(self.IMAGE_POOL_PATH,
                                            filenames[i])
+            # if filenames is a raw file
+            if not (filenames[i].find(".NEF") == -1):
+                self.add_path_img(filenames[i], "NEF")
+            elif not (filenames[i].find(".jpg") == -1):
+                self.add_path_img(filenames[i], "JPG")
+            elif not (filenames[i].find(".MOV") == -1):
+                self.add_path_mov(filenames[i])
+            else :
+                print "File not recognised"
+        if self.verbose:
+            print "Moving files..."
+
+        for i in range(filenames_size):
+            
             # if filenames is a raw file
             if not (filenames[i].find(".NEF") == -1):
                 type_name = "raw image"
@@ -192,7 +243,7 @@ class PicMover:
                 self.print_process(type_name,i,filenames,filenames_size)
                 self.process_img(filenames[i])
             elif not (filenames[i].find(".MOV") == -1):
-                # fix to move mov to / WRITEPATH/Mov/
+                # fix to move mov to / my_writepath/Mov/
                 type_name = "movie"
                 self.print_process(type_name,i,filenames,filenames_size)
                 self.process_mov(filenames[i])
@@ -214,14 +265,25 @@ def main(argv=None):
     if argv is None:
         argv = sys.argv
 
-    parser = argparse.ArgumentParser(description = "PicMover: Simple program that moves images\naccording to metadata")
+    parser = argparse.ArgumentParser(description = "PicMover: Simple program that moves"
+                                     " images\naccording to metadata")
     parser.add_argument("-v", action="store_true", default=False, dest='verbose',
                         help="More text, i.e. verbose")
     parser.add_argument("-mv", action="store_true", default=False, dest='move',
                         help="Moves the target images, not just copying them to the target position")
+    parser.add_argument("-n", action="store_true", default=False, dest='dry_run',
+                        help="Dry run, execute all actions but doesn't move any files. Good for testing.")
+    parser.add_argument("--camera-model", default='D7000', dest='camera_model',
+                        help="Set camera model incase no model can be found in metadata.")
+    parser.add_argument("--camera-maker", default='Nikon', dest='camera_maker',
+                        help="Set camera manufacture incase no manufactor can be found in metadata.")
+
     result = parser.parse_args()
     pm.verbose = result.verbose
     pm.move = result.move
+    pm.dry_run = result.dry_run
+    pm.camera_maker = result.camera_maker
+    pm.camera_model = result.camera_model
     pm.exe()
     return 0
     
