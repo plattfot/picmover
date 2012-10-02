@@ -81,24 +81,17 @@ class PicMover:
         # if that succeeded remove the image from the image pool 
         filepath = self.IMAGE_POOL_PATH+'/'+filename
         writepath = writepath + filename
-        print "From ", filepath, "\n", "To ", writepath
-        # if not os.path.exists(writepath):
-        #     shutil.copy2(filepath,writepath)
-        #     if self.verbose:
-        #         print "Moved", filename
-        #         print "To", writepath
-        #     if self.move: os.remove(filepath)
-            
-    def check_if_in_us(self, date):
-        start_date = datetime.datetime(2011,01,31)
-        end_date = datetime.datetime(2011,05,23)
-
-        if start_date < date < end_date:
-            usa = str(start_date.date() )  +" USA tripp/"
-        else : 
-            usa =""
-
-        self.writepath += usa
+        if self.dry_run != True:
+            if not os.path.exists(writepath):
+                #shutil.copy2(filepath,writepath)
+                print "Not dry run!"
+                if self.verbose:
+                    print " -Moved to", writepath
+                if self.move: os.remove( filepath )
+        else:
+            if self.verbose:
+                print " -Moved to", writepath
+                    
 
     def add_path(self, metadata, date, img_type ):
         #userComment =  metadata['Exif.Photo.UserComment'].human_value
@@ -214,7 +207,8 @@ class PicMover:
             return
         # Scan for paths
         if self.verbose:
-            print "Scaning for paths..."
+            print "[------------- Scaning for paths ---------------]"
+
         for i in range(filenames_size):
             
             filenames[i] = self.strip_path(self.IMAGE_POOL_PATH,
@@ -229,7 +223,7 @@ class PicMover:
             else :
                 print "File not recognised"
         if self.verbose:
-            print "Moving files..."
+            print "[---------------- Moving files -----------------]"
 
         for i in range(filenames_size):
             
