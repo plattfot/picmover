@@ -74,17 +74,17 @@ class PicMover:
         elif (filename.find(".MOV") > -1):
             writepath += "mov/"
 
-        # check to see if the directory exists, if not create it
-        # self.ensure_dir(writepath)
-        
+   
         # Then move it to the new location
         # if that succeeded remove the image from the image pool 
         filepath = self.IMAGE_POOL_PATH+'/'+filename
         writepath = writepath + filename
         if self.dry_run != True:
+            # check to see if the directory exists, if not create it
+            self.ensure_dir(writepath)
+
             if not os.path.exists(writepath):
-                #shutil.copy2(filepath,writepath)
-                print "Not dry run!"
+                shutil.copy2(filepath,writepath)
                 if self.verbose:
                     print " -Moved to", writepath
                 if self.move: os.remove( filepath )
