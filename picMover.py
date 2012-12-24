@@ -255,7 +255,7 @@ def process(arg):
     print arg
 
 def main(argv=None):
-    pm = PicMover()
+
     if argv is None:
         argv = sys.argv
 
@@ -273,6 +273,7 @@ def main(argv=None):
                         help="Set camera manufacture incase no manufactor can be found in metadata.")
 
     result = parser.parse_args()
+    pm = PicMover()
     pm.verbose = result.verbose
     pm.move = result.move
     pm.dry_run = result.dry_run
