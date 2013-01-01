@@ -26,6 +26,13 @@ Flags:
 verbose\t-v
 Created by: Fredrik "PlaTFooT" Salomonsson plattfot@gmail.com.
 """
+
+def yesNo( x ):
+    if x.lower() == 'yes' or x.lower() == 'true':
+        return True
+    else:
+        return False
+
 class PicMover:
  
     # python constructor
@@ -36,6 +43,7 @@ class PicMover:
         image_path = "Bilder"
         video_path = "Video"
         root = os.path.expanduser( "~" )
+        check_if_mounted = False
         self.camera_maker = "Nikon" 
         self.camera_model = "D7000" 
         self.IMAGE_POOL_PATH = os.getcwd()
@@ -57,22 +65,29 @@ class PicMover:
                     print "Camera Model is",data[1]
             elif data[0] == "Root":
                 root = data[1]
-                if not os.path.ismount( root ):
-                    raise RuntimeError("[Error] Root path is not mounted! Abort!")
                 if verbose:
-                    print "Root is set to",data[1]
+                    print "Root is set to:",data[1]
             elif data[0] == "ImagePath":
                 image_path = data[1]
                 if verbose:
-                    print "Image directory is",data[1]
+                    print "Image directory is set to:",data[1]
             elif data[0] == "VideoPath":
                 video_path = data[1]
                 if verbose:
-                    print "Video directory is",data[1]
+                    print "Video directory is set to:",data[1]
             elif data[0] == "SourcePath":
                 self.IMAGE_POOL_PATH = data[1]
                 if verbose:
-                    print "Source path is set to",data[1]
+                    print "Source path is set to:",data[1]
+            elif data[0] == "CheckIfMounted":
+                check_if_mounted = yesNo( data[1] )
+                if verbose:
+                    print "Check if root is mounted:", check_if_mounted
+        print check_if_mounted
+        #if check_if_mounted and not os.path.ismount( root ):
+        if check_if_mounted and not os.path.ismount( root ):
+            raise RuntimeError("[Error] Root path is not mounted! Abort!")
+        
 
         # print "home path = ", ROOT_PATH
         # Only add '/' if the *_path doesn't start with '/'
@@ -84,6 +99,7 @@ class PicMover:
         self.mov_keys = {}
         self.img_keys = {}
         self.verbose = verbose
+
     # checks if a directory exists, if not it creates it
     def ensure_dir(self, f):
         d = os.path.dirname(f)
