@@ -77,19 +77,18 @@ class PicMover:
                     print "Video directory is set to:",data[1]
             elif data[0] == "SourcePath":
                 self.IMAGE_POOL_PATH = data[1]
+                if not os.path.ismount( data[1] ):
+                    raise RuntimeError("[Error] Root path is not mounted! Abort!")
                 if verbose:
                     print "Source path is set to:",data[1]
             elif data[0] == "CheckIfMounted":
                 check_if_mounted = yesNo( data[1] )
                 if verbose:
                     print "Check if root is mounted:", check_if_mounted
-        print check_if_mounted
         #if check_if_mounted and not os.path.ismount( root ):
         if check_if_mounted and not os.path.ismount( root ):
             raise RuntimeError("[Error] Root path is not mounted! Abort!")
         
-
-        # print "home path = ", ROOT_PATH
         # Only add '/' if the *_path doesn't start with '/'
         self.TARGET_IMAGE_PATH = root + ('/' if image_path[0] != '/' else '') + image_path
         self.TARGET_VIDEO_PATH = root + ('/' if video_path[0] != '/' else '') + video_path 
@@ -99,6 +98,8 @@ class PicMover:
         self.mov_keys = {}
         self.img_keys = {}
         self.verbose = verbose
+
+
 
     # checks if a directory exists, if not it creates it
     def ensure_dir(self, f):
