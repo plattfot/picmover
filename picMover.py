@@ -29,7 +29,7 @@ Created by: Fredrik "PlaTFooT" Salomonsson plattfot@gmail.com.
 class PicMover:
  
     # python constructor
-    def __init__(self, path, verbose = False):
+    def __init__(self, path, dry_run = False, move = False, verbose = False):
         # Convert ~/ to relative path if needed.
         expanded_path = os.path.expanduser( path )
         # Init variables
@@ -78,7 +78,8 @@ class PicMover:
         # Only add '/' if the *_path doesn't start with '/'
         self.TARGET_IMAGE_PATH = root + ('/' if image_path[0] != '/' else '') + image_path
         self.TARGET_VIDEO_PATH = root + ('/' if video_path[0] != '/' else '') + video_path 
-      
+        self.dry_run = dry_run
+        self.move = move
         self.writepath = {}
         self.mov_keys = {}
         self.img_keys = {}
@@ -307,14 +308,16 @@ def main(argv=None):
                         help="Config file to load.")
 
     result = parser.parse_args()
-    pm = PicMover( result.path, result.verbose )
+    pm = PicMover( result.path, 
+                   verbose = result.verbose, 
+                   dry_run = result.dry_run,
+                   move = result.move )
     # pm.verbose      = result.verbose
     # pm.move         = result.move
     # pm.dry_run      = result.dry_run
     # pm.camera_maker = result.camera_maker
     # pm.camera_model = result.camera_model
-    # pm.path         = result.path
-    #pm.exe()
+    pm.exe()
     return 0
     
 if __name__ == "__main__":
