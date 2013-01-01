@@ -3,10 +3,11 @@ import pyexiv2 # for extracting metadata from jpeg and raw image files
 import os
 import shutil # moving and deleting files
 import glob   # get files from a directory
-# Should be read from a .config file later o
+# Should be read from a .config file later on
 import sys
 import argparse
 import datetime
+import re
 
 ############# Hachoir stuff ##################
 from hachoir_core.error import HachoirError
@@ -28,29 +29,60 @@ Created by: Fredrik "PlaTFooT" Salomonsson plattfot@gmail.com.
 class PicMover:
  
     # python constructor
-    def __init__(self):
-        if os.getenv("PMV_ROOT")==None:
-            if os.path.ismount( "/media/Valhalla" ):
-                ROOT_PATH = "/media/Valhalla"
-            else:
-                raise RunTimeError("[Error] Default path is not mounted! Abort!")
+    def __init__(self, path, verbose = False):
+        # Convert ~/ to relative path if needed.
+        expanded_path = os.path.expanduser( path )
+        # Init variables
+        image_path = "Bilder"
+        video_path = "Video"
+        root = os.path.expanduser( "~" )
+        self.camera_maker = "Nikon" 
+        self.camera_model = "D7000" 
+        self.IMAGE_POOL_PATH = os.getcwd()
+        # Read settings
+        f = open( expanded_path, "r")
+        for line in f:
+            #data = re.findall(r'.*[ ]',line)
+            data = line.split()
+            # Check if data has no entries
+            if len(data) == 0:
+                continue
+            if data[0] == "CameraMaker":
+                self.camera_maker = data[1]
+                if verbose:
+                    print "Camera Maker is",data[1]
+            elif data[0] == "CameraModel":
+                self.camera_model = data[1]
+                if verbose:
+                    print "Camera Model is",data[1]
+            elif data[0] == "Root":
+                root = data[1]
+                if not os.path.ismount( root ):
+                    raise RuntimeError("[Error] Root path is not mounted! Abort!")
+                if verbose:
+                    print "Root is set to",data[1]
+            elif data[0] == "ImagePath":
+                image_path = data[1]
+                if verbose:
+                    print "Image directory is",data[1]
+            elif data[0] == "VideoPath":
+                video_path = data[1]
+                if verbose:
+                    print "Video directory is",data[1]
+            elif data[0] == "SourcePath":
+                self.IMAGE_POOL_PATH = data[1]
+                if verbose:
+                    print "Source path is set to",data[1]
 
-        else:
-            # Set en path to Root
-            ROOT_PATH = os.getenv("PMV_ROOT")
-
-        print "home path = ", ROOT_PATH
-        self.TARGET_IMAGE_PATH = ROOT_PATH+'/Bilder' 
-        self.TARGET_VIDEO_PATH = ROOT_PATH+'/Video' 
-        self.IMAGE_POOL_PATH = os.getcwd() # for now
+        # print "home path = ", ROOT_PATH
+        # Only add '/' if the *_path doesn't start with '/'
+        self.TARGET_IMAGE_PATH = root + ('/' if image_path[0] != '/' else '') + image_path
+        self.TARGET_VIDEO_PATH = root + ('/' if video_path[0] != '/' else '') + video_path 
+      
         self.writepath = {}
         self.mov_keys = {}
         self.img_keys = {}
-        self.verbose = False
-        self.move = False
-        self.dry_run = False
-        self.camera_model = 'D7000'
-        self.camera_maker = 'Nikon'
+        self.verbose = verbose
     # checks if a directory exists, if not it creates it
     def ensure_dir(self, f):
         d = os.path.dirname(f)
@@ -267,19 +299,22 @@ def main(argv=None):
                         help="Moves the target images, not just copying them to the target position")
     parser.add_argument("-n", action="store_true", default=False, dest='dry_run',
                         help="Dry run, execute all actions but doesn't move any files. Good for testing.")
-    parser.add_argument("--camera-model", default='D7000', dest='camera_model',
-                        help="Set camera model incase no model can be found in metadata.")
-    parser.add_argument("--camera-maker", default='Nikon', dest='camera_maker',
-                        help="Set camera manufacture incase no manufactor can be found in metadata.")
+    ### parser.add_argument("--camera-model", default='D7000', dest='camera_model',
+    ###                     help="Set camera model incase no model can be found in metadata.")
+    ### parser.add_argument("--camera-maker", default='Nikon', dest='camera_maker',
+    ###                     help="Set camera manufacture incase no manufactor can be found in metadata.")
+    parser.add_argument("-c", default='~/.picmoverrc', dest='path',
+                        help="Config file to load.")
 
     result = parser.parse_args()
-    pm = PicMover()
-    pm.verbose = result.verbose
-    pm.move = result.move
-    pm.dry_run = result.dry_run
-    pm.camera_maker = result.camera_maker
-    pm.camera_model = result.camera_model
-    pm.exe()
+    pm = PicMover( result.path, result.verbose )
+    # pm.verbose      = result.verbose
+    # pm.move         = result.move
+    # pm.dry_run      = result.dry_run
+    # pm.camera_maker = result.camera_maker
+    # pm.camera_model = result.camera_model
+    # pm.path         = result.path
+    #pm.exe()
     return 0
     
 if __name__ == "__main__":
