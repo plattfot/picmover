@@ -109,8 +109,8 @@ class PicMover:
             print "Created path", f
     # strips the path name and just return the name of the file
     # e.g path/to/file/pic.NEF -> pic.NEF
-    def strip_path(self, path, filename):
-        start = len(path)+1
+    def strip_path(self, path, filename, offset = 1):
+        start = len(path)+offset
         filename = filename[start : ]
         return filename
 
@@ -124,7 +124,6 @@ class PicMover:
         elif (filename.find(".MOV") > -1):
             writepath += "mov/"
 
-   
         # Then move it to the new location
         # if that succeeded remove the image from the image pool 
         filepath = self.IMAGE_POOL_PATH+'/'+filename
@@ -146,21 +145,42 @@ class PicMover:
     def add_path(self, metadata, date, img_type ):
         #userComment =  metadata['Exif.Photo.UserComment'].human_value
         #userComment = userComment.strip()
-            
+        # Get camera maker
+        maker = metadata['Exif.Image.Make'].human_value
+        # Choose first ( remove corporation from nikon)
+        maker = maker.split()[0]
+        # Get camera model
         camera = metadata['Exif.Image.Model'].human_value
-        camera = camera.split()
-      
-        path = '/' + camera[0].capitalize()+'/'+ \
-            camera[1]+'/'+                       \
+        if 'NIKON' in camera:
+            camera = camera.split()
+            camera = camera[1]
+        path = '/' + maker.capitalize()+'/'+ \
+            camera+'/'+                      \
             str( date.year )+'/'
         key = str( date.date() )
-        # Ask for name 
-        name = raw_input("["+img_type+"] Name of event ( " + key +" <name> ): ")
-        # Add date + name
-        path += str(date.date() ) + ' ' + name +'/' 
+        path_to_events = self.TARGET_IMAGE_PATH + path
+        matches = glob.glob(path_to_events + key + '*')
 
-        # Add path to dict
-        self.writepath[ key ] = path
+        # Found potential matching events 
+        if len(matches):
+            print "Found events matching the date. Use one of these instead?"
+
+            for i,m in enumerate(matches):
+                print "[" + str(i) + "] " + self.strip_path( path_to_events, m, 0 )
+                answer = raw_input("Type the number matching the event or [n] to create a new: ")
+                
+        if answer.isdigit() and int(answer) < len(matches) :
+            self.writepath[ key ] = self.strip_path( path_to_events, 
+                                                     matches[int(answer)], 0 ) + '/'
+        else:
+            # Ask for name 
+            name = raw_input("["+img_type+"] Name of event ( " + key +" <name> ): ")
+
+            # Add date + name
+            path += str(date.date() ) + ' ' + name +'/' 
+
+            # Add path to dict
+            self.writepath[ key ] = path
        
     def add_path_img( self, filename, img_type ):
         # go to the correct folder e.g. ~/Nikon/D7000/2011/
@@ -168,8 +188,13 @@ class PicMover:
         metadata = pyexiv2.ImageMetadata(filename)
         metadata.read()
         # Extract usfull information from the metadata object
-        date = metadata['Exif.Image.DateTime'].value
-
+        date = datetime.datetime.today()
+        if 'Exif.Image.DateTime' in metadata:
+            date = metadata['Exif.Image.DateTime'].value
+        elif 'Exif.Photo.DateTimeOriginal' in metadata:
+            date = metadata['Exif.Photo.DateTimeOriginal'].value
+        else:
+            print "[Warning] Couldn't find date! Using today's date instead."
         key = str( date.date() )
         
         # Hash key to filename to avoid parse metadata twice
@@ -339,3 +364,5 @@ def main(argv=None):
     
 if __name__ == "__main__":
     sys.exit(main())
+
+    
