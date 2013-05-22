@@ -9,6 +9,7 @@ import argparse
 import datetime
 import re
 
+from collections import defaultdict
 ############# Hachoir stuff ##################
 from hachoir_core.error import HachoirError
 from hachoir_core.cmd_line import unicodeFilename
@@ -95,6 +96,7 @@ class PicMover:
         self.dry_run = dry_run
         self.move = move
         self.writepath = {}
+        self.ignore = defaultdict(bool)
         self.mov_keys = {}
         self.img_keys = {}
         self.verbose = verbose
@@ -167,20 +169,24 @@ class PicMover:
 
             for i,m in enumerate(matches):
                 print "[" + str(i) + "] " + self.strip_path( path_to_events, m, 0 )
-                answer = raw_input("Type the number matching the event or [n] to create a new: ")
+                answer = raw_input("Type the number matching the event, "
+                                   "[n] to create a new and "
+                                   "[i] to ignore this event: ")
                 
         if answer.isdigit() and int(answer) < len(matches) :
             self.writepath[ key ] = self.strip_path( path_to_events, 
                                                      matches[int(answer)], 0 ) + '/'
-        else:
+        elif answer == "n":
             # Ask for name 
             name = raw_input("["+img_type+"] Name of event ( " + key +" <name> ): ")
-
+            
             # Add date + name
-            path += str(date.date() ) + ' ' + name +'/' 
-
+            path += str( date.date() ) + ' ' + name +'/' 
+            
             # Add path to dict
             self.writepath[ key ] = path
+        else:
+            self.ignore[ key ] = True
        
     def add_path_img( self, filename, img_type ):
         # go to the correct folder e.g. ~/Nikon/D7000/2011/
@@ -200,7 +206,7 @@ class PicMover:
         # Hash key to filename to avoid parse metadata twice
         self.img_keys[ filename ] = key
 
-        if key not in self.writepath:
+        if (key not in self.writepath) and (key not in self.ignore):
             self.add_path( metadata, date, img_type )
 
     def add_path_mov( self, filename ):
@@ -241,26 +247,31 @@ class PicMover:
         # Hash realname to avoid parsing the metadata twice
         self.mov_keys[ realname ] = date
 
-        if date not in self.writepath :
+        if date not in self.writepath and date not in self.ignore:
             path = '/' + self.camera_maker +'/'+ self.camera_model + '/' + date[0:4] + '/'
             name = raw_input("[MOV] Name of event ( " + date +" <name> ): ")
             # Add date + name
             path += date + ' ' + name +'/' 
-
+            self.writepath[ date ] = path
             
     def process_img(self,filename):
     
         key = self.img_keys[filename]
+        if self.ignore[ key ]:
+            return
         path = self.TARGET_IMAGE_PATH + self.writepath[ key ]
         # Move file to the new path
         self.move_file(filename, path )  
 
     def process_mov(self,filename):
         
-        date = self.mov_keys[filename]
-        if date in self.writepath:
+        key = self.mov_keys[filename]
+        if self.ignore[ key ]:
+            return # Do nothing
 
-            path = self.TARGET_VIDEO_PATH + self.writepath[ date ]
+        if key in self.writepath:
+
+            path = self.TARGET_VIDEO_PATH + self.writepath[ key ]
             self.move_file(filename, path )
         else :
             raise RunTimeError( "Didn't find the path matching the date!")
@@ -321,7 +332,7 @@ class PicMover:
                 
         print "done"
 
-# Based on Guido van van Rossu's main function
+# Based on Guido van Rossu's main function
 class Usage(Exception):
     def __init__(self, msg):
         self.msg = msg
