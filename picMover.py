@@ -163,6 +163,7 @@ class PicMover:
         path_to_events = self.TARGET_IMAGE_PATH + path
         matches = glob.glob(path_to_events + key + '*')
 
+        answer = 'n'
         # Found potential matching events 
         if len(matches):
             print "Found events matching the date. Use one of these instead?"
