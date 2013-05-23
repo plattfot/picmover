@@ -104,14 +104,14 @@ class PicMover:
 
 
     # checks if a directory exists, if not it creates it
-    def ensure_dir(self, f):
+    def ensureDir(self, f):
         d = os.path.dirname(f)
         if not os.path.exists(d):
             os.makedirs(d)
             print "Created path", f
     # strips the path name and just return the name of the file
     # e.g path/to/file/pic.NEF -> pic.NEF
-    def strip_path(self, path, filename, offset = 1):
+    def stripPath(self, path, filename, offset = 1):
         start = len(path)+offset
         filename = filename[start : ]
         return filename
@@ -132,7 +132,7 @@ class PicMover:
         writepath = writepath + filename
         if self.dry_run != True:
             # check to see if the directory exists, if not create it
-            self.ensure_dir(writepath)
+            self.ensureDir(writepath)
 
             if not os.path.exists(writepath):
                 shutil.copy2(filepath,writepath)
@@ -162,20 +162,23 @@ class PicMover:
         key = str( date.date() )
         path_to_events = self.TARGET_IMAGE_PATH + path
         matches = glob.glob(path_to_events + key + '*')
-
+        print camera, maker
         answer = 'n'
         # Found potential matching events 
         if len(matches):
             print "Found events matching the date. Use one of these instead?"
 
             for i,m in enumerate(matches):
-                print "[" + str(i) + "] " + self.strip_path( path_to_events, m, 0 )
+                print "[" + str(i) + "] " + self.stripPath( path_to_events, m, 0 )
                 answer = raw_input("Type the number matching the event, "
                                    "[n] to create a new and "
                                    "[i] to ignore this event: ")
                 
         if answer.isdigit() and int(answer) < len(matches) :
-            self.writepath[ key ] = self.strip_path( path_to_events, 
+            self.writepath[ key ] = '/' + maker.capitalize()+'/'+ \
+                                    camera+'/'+                   \
+                                    str( date.year )+ '/' +\
+                                    self.stripPath( path_to_events, 
                                                      matches[int(answer)], 0 ) + '/'
         elif answer == "n":
             # Ask for name 
@@ -260,6 +263,7 @@ class PicMover:
         key = self.img_keys[filename]
         if self.ignore[ key ]:
             return
+
         path = self.TARGET_IMAGE_PATH + self.writepath[ key ]
         # Move file to the new path
         self.move_file(filename, path )  
@@ -271,7 +275,6 @@ class PicMover:
             return # Do nothing
 
         if key in self.writepath:
-
             path = self.TARGET_VIDEO_PATH + self.writepath[ key ]
             self.move_file(filename, path )
         else :
@@ -298,7 +301,7 @@ class PicMover:
 
         for i in range(filenames_size):
             
-            filenames[i] = self.strip_path(self.IMAGE_POOL_PATH,
+            filenames[i] = self.stripPath(self.IMAGE_POOL_PATH,
                                            filenames[i])
             # if filenames is a raw file
             if not (filenames[i].find(".NEF") == -1):
