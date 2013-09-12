@@ -14,7 +14,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>. 
 
 #! /usr/bin/env python2
-import pyexiv2 # for extracting metadata from jpeg and raw image files
+#import pyexiv2 # for extracting metadata from jpeg and raw image files Depricated!
+from gi.repository import GExiv2 # for extracting metadata from jpeg and raw image files
 import os
 import shutil # moving and deleting files
 import glob   # get files from a directory
@@ -210,8 +211,8 @@ class PicMover:
     def add_path_img( self, filename, img_type ):
         # go to the correct folder e.g. ~/Nikon/D7000/2011/
         # Get the metadata from the image
-        metadata = pyexiv2.ImageMetadata(filename)
-        metadata.read()
+        metadata = GExiv2.Metadata(filename)
+#        metadata.read()
         # Extract usfull information from the metadata object
         date = datetime.datetime.today()
         if 'Exif.Image.DateTime' in metadata:
