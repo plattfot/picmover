@@ -14,8 +14,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>. 
 
-#import pyexiv2 # for extracting metadata from jpeg and raw image files Depricated!
-from gi.repository import GExiv2 # for extracting metadata from jpeg and raw image files
 import os
 import shutil # moving and deleting files
 import glob   # get files from a directory
@@ -24,6 +22,11 @@ import sys
 import argparse
 import datetime
 import re
+try:
+    # for extracting metadata from jpeg and raw image files
+    from gi.repository import GExiv2
+except ImportError:
+    exit('You need to install gexiv2 first.')
 
 from collections import defaultdict
 # ############# Hachoir stuff ##################
@@ -54,7 +57,7 @@ class PicMover:
  
     # python constructor
     def __init__(self, path, dry_run = False, move = False, verbose = False):
-        print( "[Warning] Importing videos are currently not supported with the python 3 version!.")
+        print( "[Warning] Importing videos are currently not supported with the python 3 version!")
         # Convert ~/ to relative path if needed.
         expanded_path = os.path.expanduser( path )
         # Init variables

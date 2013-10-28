@@ -1,3 +1,4 @@
+#! /usr/bin/env python2
 # Copyright 2013 Fredrik Salomonsson
 
 # This program is free software: you can redistribute it and/or modify
@@ -13,9 +14,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>. 
 
-#! /usr/bin/env python2
-#import pyexiv2 # for extracting metadata from jpeg and raw image files Depricated!
-from gi.repository import GExiv2 # for extracting metadata from jpeg and raw image files
 import os
 import shutil # moving and deleting files
 import glob   # get files from a directory
@@ -24,6 +22,12 @@ import sys
 import argparse
 import datetime
 import re
+
+try:
+    # for extracting metadata from jpeg and raw image files
+    from gi.repository import GExiv2
+except ImportError:
+    exit('You need to install gexiv2 first.')
 
 from collections import defaultdict
 ############# Hachoir stuff ##################
@@ -164,18 +168,18 @@ class PicMover:
         #userComment =  metadata['Exif.Photo.UserComment'].human_value
         #userComment = userComment.strip()
         # Get camera maker
-        maker = metadata['Exif.Image.Make'].human_value
+        maker = metadata['Exif.Image.Make']
         # Choose first ( remove corporation from nikon)
         maker = maker.split()[0]
         # Get camera model
-        camera = metadata['Exif.Image.Model'].human_value
+        camera = metadata['Exif.Image.Model']
         if 'NIKON' in camera:
             camera = camera.split()
             camera = camera[1]
         path = '/' + maker.capitalize()+'/'+ \
             camera+'/'+                      \
-            str( date.year )+'/'
-        key = str( date.date() )
+            date[0:4]+'/'
+        key = date
         path_to_events = self.TARGET_IMAGE_PATH + path
         matches = glob.glob(path_to_events + key + '*')
         print camera, maker
@@ -193,7 +197,7 @@ class PicMover:
         if answer.isdigit() and int(answer) < len(matches) :
             self.writepath[ key ] = '/' + maker.capitalize()+'/'+ \
                                     camera+'/'+                   \
-                                    str( date.year )+ '/' +\
+                                    date[0:4]+ '/' +\
                                     self.stripPath( path_to_events, 
                                                      matches[int(answer)], 0 ) + '/'
         elif answer == "n":
@@ -201,7 +205,7 @@ class PicMover:
             name = raw_input("["+img_type+"] Name of event ( " + key +" <name> ): ")
             
             # Add date + name
-            path += str( date.date() ) + ' ' + name +'/' 
+            path += date + ' ' + name +'/' 
             
             # Add path to dict
             self.writepath[ key ] = path
@@ -212,21 +216,21 @@ class PicMover:
         # go to the correct folder e.g. ~/Nikon/D7000/2011/
         # Get the metadata from the image
         metadata = GExiv2.Metadata(filename)
-#        metadata.read()
+
         # Extract usfull information from the metadata object
-        date = datetime.datetime.today()
+        date = str(datetime.datetime.today())
         if 'Exif.Image.DateTime' in metadata:
-            date = metadata['Exif.Image.DateTime'].value
+            date = metadata['Exif.Image.DateTime'].split()[0]
         elif 'Exif.Photo.DateTimeOriginal' in metadata:
-            date = metadata['Exif.Photo.DateTimeOriginal'].value
+            date = metadata['Exif.Photo.DateTimeOriginal'].split()[0]
         else:
             print "[Warning] Couldn't find date! Using today's date instead."
-        key = str( date.date() )
-        
+        # GExiv2 format the date with : instead of -.
+        date=date.replace(":","-")
         # Hash key to filename to avoid parse metadata twice
-        self.img_keys[ filename ] = key
+        self.img_keys[ filename ] = date
 
-        if (key not in self.writepath) and (key not in self.ignore):
+        if (date not in self.writepath) and (date not in self.ignore):
             self.add_path( metadata, date, img_type )
 
     def add_path_mov( self, filename ):
