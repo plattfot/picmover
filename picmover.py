@@ -309,6 +309,7 @@ class PicMover:
     def exe(self):
         filenames =  glob.glob(self.IMAGE_POOL_PATH+'/'+'*.NEF')
         filenames += glob.glob(self.IMAGE_POOL_PATH+'/'+'*.jpg')       
+        filenames += glob.glob(self.IMAGE_POOL_PATH+'/'+'*.JPG')       
         filenames += glob.glob(self.IMAGE_POOL_PATH+'/'+'*.MOV')  
 
         filenames_size = len(filenames)
@@ -328,6 +329,8 @@ class PicMover:
                 self.add_path_img(filenames[i], "NEF")
             elif not (filenames[i].find(".jpg") == -1):
                 self.add_path_img(filenames[i], "JPG")
+            elif not (filenames[i].find(".JPG") == -1):
+                self.add_path_img(filenames[i], "JPG")
             elif not (filenames[i].find(".MOV") == -1):
                 self.add_path_mov(filenames[i])
             else :
@@ -343,6 +346,10 @@ class PicMover:
                 self.print_process(type_name,i,filenames,filenames_size)
                 self.process_img(filenames[i])
             elif not (filenames[i].find(".jpg") == -1):
+                type_name = "jpg image"
+                self.print_process(type_name,i,filenames,filenames_size)
+                self.process_img(filenames[i])
+            elif not (filenames[i].find(".JPG") == -1):
                 type_name = "jpg image"
                 self.print_process(type_name,i,filenames,filenames_size)
                 self.process_img(filenames[i])
