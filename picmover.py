@@ -61,12 +61,12 @@ class PicMover:
         # Convert ~/ to relative path if needed.
         expanded_path = os.path.expanduser( path )
         # Init variables
-        image_path = "Bilder"
+        image_path = "Image"
         video_path = "Video"
         root = os.path.expanduser( "~" )
         check_if_mounted = False
-        self.camera_maker = "Nikon" 
-        self.camera_model = "D7000" 
+        self.camera_maker = "Unknown maker" 
+        self.camera_model = "Unknown model" 
         self.IMAGE_POOL_PATH = os.getcwd()
         # Read settings
         f = open( expanded_path, "r")
@@ -376,11 +376,11 @@ def main(argv=None):
     if argv is None:
         argv = sys.argv
 
-    parser = argparse.ArgumentParser(description = "PicMover: Simple program that moves"
-                                     " images\naccording to metadata")
+    parser = argparse.ArgumentParser(description = "picmover: Simple program that moves"
+                                     " images according to metadata")
     parser.add_argument("-v", action="store_true", default=False, dest='verbose',
                         help="More text, i.e. verbose")
-    parser.add_argument("-mv", action="store_true", default=False, dest='move',
+    parser.add_argument("-m","--mv", action="store_true", default=False, dest='move',
                         help="Moves the target images, not just copying them to the target position")
     parser.add_argument("-n", action="store_true", default=False, dest='dry_run',
                         help="Dry run, execute all actions but doesn't move any files. Good for testing.")
