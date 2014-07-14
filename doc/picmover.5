@@ -1,0 +1,80 @@
+." To see the result run: groff -man -Tascii <file> | less "
+.TH picmover 5 "2014-07-13" "version 0.1.0" 
+
+.SH NAME
+~/.picmoverrc - configure file for 
+.B picmover
+.
+.SH DESCRIPTION
+.B picmover
+will look for a configure file called 
+.I .picmoverrc 
+in the user's home directory, no global configure file exist at the moment. If it cannot find any configure file it will use the defaults. To comment in the configure file use #. 
+To set any of the variables in the configure file type the name then white space and then it's value. For example to change the default camera maker to Nikon add this in your config file.
+.PP
+# Change default camera manufacturer to Nikon.
+.br
+CameraMaker Nikon
+
+.SH OPTIONS
+.IP CameraMaker
+The default camera manufacturer which it will use if it cannot find it in the metadata. The default is set to 
+.IR "Unknown maker" .
+.IP CameraModel
+The default camera model which it will use if it cannot find it in the metadata. The default is set to 
+.IR "Unknown model" .
+.IP Root
+Path to where the root of the destination is. Default is $HOME.
+.IP ImagePath
+Path to where it should place the images relative to 
+.IR Root .
+The default is 
+.I Image
+.IP VideoPath
+Path to where it should place the videos relative to 
+.IR Root .
+The default is 
+.I Video
+.IP SourcePath
+If this is set it will look for images and videos in this path instead of looking at the directory it was called from.
+.IP CheckIfMounted
+Check if the
+.I Root
+is mounted before proceeding. Useful if the root on a external/network attached drive. Will abort if the root isn't mounted.
+.SH EXAMPLES
+# Example config file for picmover.
+.br
+# Change default camera maker and model.
+.br 
+CameraMaker Nikon
+.br
+CameraModel D7000
+.br
+# Change root to mounted network drive, default is home dir.
+.br
+Root /mnt/NetworkDrive
+.br
+# Make sure it's mounted
+.br
+CheckIfMounted Yes
+.PP
+# Note that Image/VideoPath is not absolute path but relative to Root path
+.br
+# Set path to images and videos
+.br
+ImagePath Pictures
+.br
+VideoPath Movies
+.PP
+# Change the source path to read from the mounted sdcard
+.br
+SourcePath /mnt/sdcard
+.PP
+If you run picmover with the above config file it will first check that /mnt/NetworkDrive is mounted, if so it will then look for images and videos in 
+.IR /mnt/usb . 
+A good think to keep in mind is that it will only search that directory and not any subdirectories. 
+.PP
+Lets say that it found two .NEF files and one .MOV file all taken on the same day (2014-07-13) but the metadata for camera model and maker are missing. Picmover will first let you know that it has found images/videos and prompt you to enter a name for the event and then wait until you have. It will then copy ( if --mv is used it will move ) the two .NEF files to /mnt/NetworkDrive/Pictures/Nikon/D7000/2014/2014-07-13 <comment> and the .MOV file to /mnt/NetworkDrive/Videos/Nikon/D7000/2014/2014-07-13 <comment>. 
+.SH AUTHOR
+.RI "Fredrik Salomonsson <" plattfot@gmail.com ">"
+.SH SEE ALSO

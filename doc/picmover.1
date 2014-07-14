@@ -1,0 +1,36 @@
+." To see the result run: groff -man -Tascii <file> | less "
+.TH picmover 1 "2014-07-13" "version 0.1.0" 
+
+.SH NAME
+picmover - Move images and video from a source to a destination sorting them using metadata.
+.SH SYNOPSIS
+picmover [-h] [-v] [-mv] [-n] [-c CONFIG]
+.SH DESCRIPTION
+.B picmover 
+moves images and videos taken by a camera from the directory it was called to the source, default is the users home dir. It will separate the images and videos into two directories, defaults are 
+.IR Image " and " Video.
+From there it will use the metadata to place the media. The metadata it will use are the manufacture of the camera, camera model, time when the file was taken. If it cannot find any of the metadata it will use the defaults:
+.IR "Unknown maker" " for manufacture, " "Unknown model" " for camera model and the date when it was called for the date." 
+
+.SH OPTIONS
+.IP "-h, --help"
+Show this help message and exit
+.IP -v 
+More text, i.e. verbose
+.IP "-m, --mv"
+Moves the target images, not just copying them to the target position.
+.IP -n 
+Dry run, print all actions but doesn't move any files. Good for testing.
+.IP "-c config"
+Override the user config file and use CONFIG instead.
+.SH FILES
+.IP ~/.picmoverrc
+Per user configuration file. See
+.B picmover
+(5) fpr further details.
+.SH BUGS
+It has only been tested with a Nikon D7000 and a Nokia 6700. It only supports nef, jpeg and mov files.
+.SH AUTHOR
+.RI "Fredrik Salomonsson <" plattfot@gmail.com ">"
+.SH SEE ALSO
+picmover(5)
