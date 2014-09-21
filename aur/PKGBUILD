@@ -1,0 +1,50 @@
+# This is an example PKGBUILD file. Use this as a start to creating your own,
+# and remove these comments. For more information, see 'man PKGBUILD'.
+# NOTE: Please fill out the license field for your package! If it is unknown,
+# then please put 'unknown'.
+
+# Maintainer: Fredrik Salomonsson <plattoft@gmail.com>
+pkgname=picmover
+pkgver=0.1.1
+pkgrel=1
+epoch=
+pkgdesc="Image and video importer/organizer."
+arch=('any')
+url="https://bitbucket.org/plattfot/picmover"
+license=('GPL3')
+groups=()
+depends=('hachoir-metadata' 'python2-gobject2')
+makedepends=()
+checkdepends=()
+optdepends=()
+provides=()
+conflicts=()
+replaces=()
+backup=()
+options=()
+install=
+changelog=ChangeLog
+source=('git+https://bitbucket.org/plattfot/picmover.git#tag=v$pkgver')
+noextract=()
+md5sums=() #generate with 'makepkg -g'
+
+# prepare() {
+# 	cd "$srcdir/$pkgname-$pkgver"
+# 	cd "doc"
+# 	gzip picmover.*
+# }
+
+build() {
+	cd "$srcdir/$pkgname-$pkgver"
+	make
+}
+
+check() {
+	cd "$srcdir/$pkgname-$pkgver"
+	make -k check
+}
+
+package() {
+	cd "$srcdir/$pkgname-$pkgver"
+	make DESTDIR="$pkgdir/" install
+}
