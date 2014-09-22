@@ -5,25 +5,24 @@ DESTDIR ?= /usr
 PREFIX ?= src
 
 all: $(DOC) | $(PREFIX) 
-	@cp $(SOURCE) $(PREFIX)/bin/picmover
-	@cp doc/picmover.1.gz $(PREFIX)/share/man/man1/
-	@cp doc/picmover.5.gz $(PREFIX)/share/man/man5/
-	@chmod 755 $(PREFIX)/bin/picmover
-	@echo "Done"
+	@cp $(SOURCE) $(PREFIX)/bin/picmover           && \
+	cp doc/picmover.1.gz $(PREFIX)/share/man/man1/ && \
+	cp doc/picmover.5.gz $(PREFIX)/share/man/man5/ && \
+	chmod 755 $(PREFIX)/bin/picmover               && \
+	echo "Done"
 
 $(PREFIX) $(DESTDIR):
-	@mkdir -p $@/share/man/man1
-	@mkdir -p $@/share/man/man5
-	@mkdir -p $@/bin
+	@mkdir -p $@/share/man/man1 && \
+	mkdir -p $@/share/man/man5  && \
+	mkdir -p $@/bin
 
 # prep for man
 %.gz: %
 	gzip -c $< > $@
-
+# Copy the files, including the tree structure to the destination. Note that this doesn't work on OS X.
 install: $(DOC) | $(DESTDIR)
-	@cp $(PREFIX)/bin/picmover $(DESTDIR)/bin/picmover && \
-	cp $(PREFIX)/share/man/man1/picmover.1.gz $(DESTDIR)/share/man/man1/picmover.1.gz && \
-	cp $(PREFIX)/share/man/man5/picmover.5.gz $(DESTDIR)/share/man/man5/picmover.5.gz
+	@cd $(PREFIX) && \
+	cp --parents bin/picmover share/man/man1/picmover.1.gz share/man/man5/picmover.5.gz $(DESTDIR)
 
 uninstall: 
 	@rm -fv $(DESTDIR)/bin/picmover
