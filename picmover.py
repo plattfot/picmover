@@ -22,7 +22,7 @@ import sys
 import argparse
 import datetime
 import re
-
+import pdb
 try:
     # for extracting metadata from jpeg and raw image files
     from gi.repository import GExiv2
@@ -31,12 +31,16 @@ except ImportError:
 
 from collections import defaultdict
 ############# Hachoir stuff ##################
-from hachoir_core.error import HachoirError
-from hachoir_core.cmd_line import unicodeFilename
-from hachoir_parser import createParser
-from hachoir_core.tools import makePrintable
-from hachoir_metadata import extractMetadata
-from hachoir_core.i18n import getTerminalCharset
+try:
+    from hachoir_core.error import HachoirError
+    from hachoir_core.cmd_line import unicodeFilename
+    from hachoir_parser import createParser
+    from hachoir_core.tools import makePrintable
+    from hachoir_metadata import extractMetadata
+    from hachoir_core.i18n import getTerminalCharset
+except ImportError:
+    exit('You need to install hachoir first')
+
 from sys import argv, stderr, exit
 ##############################################
 
@@ -113,6 +117,10 @@ class PicMover:
         # Only add '/' if the *_path doesn't start with '/'
         self.TARGET_IMAGE_PATH = root + ('/' if image_path[0] != '/' else '') + image_path
         self.TARGET_VIDEO_PATH = root + ('/' if video_path[0] != '/' else '') + video_path 
+        self.subdir_raw = 'raw/'
+        self.subdir_jpg = 'JPEG/'
+        self.subdir_mov = 'mov/'
+        
         self.dry_run = dry_run
         self.move = move
         self.writepath = {}
@@ -120,11 +128,11 @@ class PicMover:
         self.mov_keys = {}
         self.img_keys = {}
         self.verbose = verbose
-        self.raw_pattern = re.compile('\.(3fr| ari| arw| bay| crw| cr2| cap| dcs| dcr| dng| drf| eip| erf '
-                                      '| fff| iiq| k25| kdc| mdc| mef| mos| mrw| nef| nrw| obm| orf| pef| '
-                                      'ptx| pxn| r3d| raf| raw| rwl| rw2| rwz| sr2| srf| srw| x3f)', re.IGNORECASE)
-        self.jpg_pattern = re.compile('\.jpe{0,1}g', re.IGNORECASE)
-        self.mov_pattern = re.compile('\.mov', re.IGNORECASE)
+        self.pattern_raw = re.compile('\.(3fr|ari|arw|bay|crw|cr2|cap|dcs|dcr|dng|drf|eip|erf '
+                                      '|fff|iiq|k25|kdc|mdc|mef|mos|mrw|nef|nrw|obm|orf|pef|'
+                                      'ptx|pxn|r3d|raf|raw|rwl|rw2|rwz|sr2|srf|srw|x3f)', re.IGNORECASE)
+        self.pattern_jpg = re.compile('\.jpe{0,1}g', re.IGNORECASE)
+        self.pattern_mov = re.compile('\.mov', re.IGNORECASE)
 
     # checks if a directory exists, if not it creates it
     def ensureDir(self, f):
@@ -142,13 +150,6 @@ class PicMover:
     # First check if the path exists, if true; move the file 
     # Only if the file doesn't exists at that location 
     def move_file(self,filename, writepath ):
-        
-        if (re.search(self.raw_pattern, filename)):
-            writepath += "raw/"
-        elif (re.search(self.jpg_pattern, filename)):
-            writepath += "JPEG/"
-        elif (re.search(self.mov_pattern, filename)):
-            writepath += "mov/"
 
         # Then move it to the new location
         # if that succeeded remove the image from the image pool 
@@ -169,8 +170,6 @@ class PicMover:
                     
 
     def add_path(self, metadata, date, img_type ):
-        #userComment =  metadata['Exif.Photo.UserComment'].human_value
-        #userComment = userComment.strip()
         # Get camera maker
         maker = metadata['Exif.Image.Make']
         # Choose first ( remove corporation from nikon)
@@ -282,17 +281,17 @@ class PicMover:
             path += date + ' ' + name +'/' 
             self.writepath[ date ] = path
             
-    def process_img(self,filename):
+    def process_img(self, filename, subdir):
     
         key = self.img_keys[filename]
         if self.ignore[ key ]:
             return
 
-        path = self.TARGET_IMAGE_PATH + self.writepath[ key ]
+        path = self.TARGET_IMAGE_PATH + self.writepath[ key ] + subdir
         # Move file to the new path
         self.move_file(filename, path )  
 
-    def process_mov(self,filename):
+    def process_mov(self, filename, subdir):
         
         key = self.mov_keys[filename]
         if self.ignore[ key ]:
@@ -305,72 +304,70 @@ class PicMover:
             raise RunTimeError( "Didn't find the path matching the date!")
 
 
-    def print_process(self,type_name, index, filenames, filenames_size):
-        print "Processing",type_name ,":",filenames[index], \
-            " ["+str(index+1)+"/"+str(filenames_size)+"]"
+    def print_process(self,type_name, filename, count, total):
+        print "Processing {0} : {1} [{2}/{3}]".format(type_name, filename, count, total)
 
     # moves the file based on metadata (user comment and date)
     def exe(self):
 
-        # filenames = [f for f in os.listdir(self.IMAGE_POOL_PATH) if re.search(self.raw_pattern, f) or\
-        #              re.search(self.jpg_pattern, f) or\
-        #              re.search(self.mov_pattern, f)]
-        
-        filenames =  glob.glob(self.IMAGE_POOL_PATH+'/'+'*.NEF')
-        filenames += glob.glob(self.IMAGE_POOL_PATH+'/'+'*.jpg')       
-        filenames += glob.glob(self.IMAGE_POOL_PATH+'/'+'*.JPG')       
-        filenames += glob.glob(self.IMAGE_POOL_PATH+'/'+'*.MOV')  
-
-        filenames_size = len(filenames)
-        if filenames_size == 0 : 
-            print "No files found, exit program."
-            return
+        # filenames = [f for f in os.listdir(self.IMAGE_POOL_PATH) if re.search(self.pattern_raw, f) or\
+        #              re.search(self.pattern_jpg, f) or\
+        #              re.search(self.pattern_mov, f)]
+#        pdb.set_trace()
         # Scan for paths
         if self.verbose:
-            print "[------------- Scaning for paths ---------------]"
+            print "[------------- Scaning for files ---------------]"
 
-        for i in range(filenames_size):
-            
-            filenames[i] = self.stripPath(self.IMAGE_POOL_PATH,
-                                           filenames[i])
-            print filenames[i]
-            # if filenames is a raw file
-            if not (filenames[i].find(".NEF") == -1):
-                self.add_path_img(filenames[i], "NEF")
-            elif not (filenames[i].find(".jpg") == -1):
-                self.add_path_img(filenames[i], "JPG")
-            elif not (filenames[i].find(".JPG") == -1):
-                self.add_path_img(filenames[i], "JPG")
-            elif not (filenames[i].find(".MOV") == -1):
-                self.add_path_mov(filenames[i])
-            else :
-                print "File not recognised"
+        filenames_raw = []
+        filenames_jpg = []
+        filenames_mov = []
+        for f in os.listdir(self.IMAGE_POOL_PATH):
+            if re.search(self.pattern_raw, f):
+                filenames_raw.append(f)
+            elif re.search(self.pattern_jpg, f):
+                filenames_jpg.append(f)
+            elif re.search(self.pattern_mov, f):
+                filenames_mov.append(f)
+        total = len(filenames_raw) + len(filenames_jpg) + len(filenames_mov)
+
+        if total == 0:
+            print "No files found, exit program."
+            return
+
         if self.verbose:
-            print "[---------------- Moving files -----------------]"
+            print "[-------------- Preping files ------------------]"
 
-        for i in range(filenames_size):
+        for filename in filenames_raw:
+            self.add_path_img(filename, "RAW")
+
+        for filename in filenames_jpg:
+            self.add_path_img(filename, "JPG")            
+
+        for filename in filenames_mov:
+            self.add_path_mov(filename)
+
+        if self.verbose:
+            print "[--------------- Moving files ------------------]"
+
+        count = 1
+
+        for filename in filenames_raw:
+            type_name = "raw image"
+            self.print_process( type_name, filename, count, total )
+            self.process_img(filename, self.subdir_raw)
+            count += 1
+
+        for filename in filenames_jpg:
+            type_name = "jpg image"
+            self.print_process( type_name, filename, count, total )
+            self.process_img(filename, self.subdir_jpg)
+            count += 1
             
-            # if filenames is a raw file
-            if not (filenames[i].find(".NEF") == -1):
-                type_name = "raw image"
-                self.print_process(type_name,i,filenames,filenames_size)
-                self.process_img(filenames[i])
-            elif not (filenames[i].find(".jpg") == -1):
-                type_name = "jpg image"
-                self.print_process(type_name,i,filenames,filenames_size)
-                self.process_img(filenames[i])
-            elif not (filenames[i].find(".JPG") == -1):
-                type_name = "jpg image"
-                self.print_process(type_name,i,filenames,filenames_size)
-                self.process_img(filenames[i])
-            elif not (filenames[i].find(".MOV") == -1):
-                # fix to move mov to / my_writepath/Mov/
-                type_name = "movie"
-                self.print_process(type_name,i,filenames,filenames_size)
-                self.process_mov(filenames[i])
-            else :
-                print "File not recognised"
-                
+        for filename in filenames_mov:
+            type_name = "movie"
+            self.print_process( type_name, filename, count, total )
+            self.process_mov(filename, self.subdir_mov)
+            count += 1
         print "done"
 
 # Based on Guido van Rossu's main function
