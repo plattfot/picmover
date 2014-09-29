@@ -120,8 +120,11 @@ class PicMover:
         self.mov_keys = {}
         self.img_keys = {}
         self.verbose = verbose
-
-
+        self.raw_pattern = re.compile('\.(3fr| ari| arw| bay| crw| cr2| cap| dcs| dcr| dng| drf| eip| erf '
+                                      '| fff| iiq| k25| kdc| mdc| mef| mos| mrw| nef| nrw| obm| orf| pef| '
+                                      'ptx| pxn| r3d| raf| raw| rwl| rw2| rwz| sr2| srf| srw| x3f)', re.IGNORECASE)
+        self.jpg_pattern = re.compile('\.jpe{0,1}g', re.IGNORECASE)
+        self.mov_pattern = re.compile('\.mov', re.IGNORECASE)
 
     # checks if a directory exists, if not it creates it
     def ensureDir(self, f):
@@ -139,11 +142,12 @@ class PicMover:
     # First check if the path exists, if true; move the file 
     # Only if the file doesn't exists at that location 
     def move_file(self,filename, writepath ):
-        if (filename.find(".NEF") > -1):
+        
+        if (re.search(self.raw_pattern, filename)):
             writepath += "raw/"
-        elif (filename.find(".jpg") > -1):
+        elif (re.search(self.jpg_pattern, filename)):
             writepath += "JPEG/"
-        elif (filename.find(".MOV") > -1):
+        elif (re.search(self.mov_pattern, filename)):
             writepath += "mov/"
 
         # Then move it to the new location
@@ -307,6 +311,11 @@ class PicMover:
 
     # moves the file based on metadata (user comment and date)
     def exe(self):
+
+        # filenames = [f for f in os.listdir(self.IMAGE_POOL_PATH) if re.search(self.raw_pattern, f) or\
+        #              re.search(self.jpg_pattern, f) or\
+        #              re.search(self.mov_pattern, f)]
+        
         filenames =  glob.glob(self.IMAGE_POOL_PATH+'/'+'*.NEF')
         filenames += glob.glob(self.IMAGE_POOL_PATH+'/'+'*.jpg')       
         filenames += glob.glob(self.IMAGE_POOL_PATH+'/'+'*.JPG')       
@@ -324,6 +333,7 @@ class PicMover:
             
             filenames[i] = self.stripPath(self.IMAGE_POOL_PATH,
                                            filenames[i])
+            print filenames[i]
             # if filenames is a raw file
             if not (filenames[i].find(".NEF") == -1):
                 self.add_path_img(filenames[i], "NEF")
