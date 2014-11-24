@@ -1,4 +1,4 @@
-#! /usr/bin/env python2
+#! /usr/bin/env python
 # Copyright 2013-2014 Fredrik Salomonsson
 
 # This program is free software: you can redistribute it and/or modify
@@ -62,7 +62,7 @@ class ExifImg:
         elif 'Exif.Photo.DateTimeOriginal' in metadata:
             date = metadata['Exif.Photo.DateTimeOriginal'].split()[0]
         else:
-            print "[Warning] Couldn't find date! Using today's date instead."
+            print( "[Warning] Couldn't find date! Using today's date instead." )
         return date
         
 class ExifMov:
@@ -76,7 +76,7 @@ class ExifMov:
         if 'Xmp.video.DateTimeOriginal' in metadata:
             date = metadata['Xmp.video.DateTimeOriginal'].split()[0]
         else:
-            print "[Warning] Couldn't find date! Using today's date instead."
+            print( "[Warning] Couldn't find date! Using today's date instead." )
         return date
     
 class PicMover:
@@ -104,33 +104,33 @@ class PicMover:
             if data[0] == "CameraMaker":
                 self.camera_maker = data[1]
                 if verbose:
-                    print "Camera Maker is",data[1]
+                    print( "Camera Maker is",data[1] )
             elif data[0] == "CameraModel":
                 self.camera_model = data[1]
                 if verbose:
-                    print "Camera Model is",data[1]
+                    print( "Camera Model is",data[1] )
             elif data[0] == "Root":
                 root = data[1]
                 if verbose:
-                    print "Root is set to:",data[1]
+                    print( "Root is set to:",data[1] )
             elif data[0] == "ImagePath":
                 image_path = data[1]
                 if verbose:
-                    print "Image directory is set to:",data[1]
+                    print( "Image directory is set to:",data[1] )
             elif data[0] == "VideoPath":
                 video_path = data[1]
                 if verbose:
-                    print "Video directory is set to:",data[1]
+                    print( "Video directory is set to:",data[1] )
             elif data[0] == "SourcePath":
                 self.IMAGE_POOL_PATH = data[1]
                 if not os.path.ismount( data[1] ):
                     raise RuntimeError("[Error] Root path is not mounted! Abort!")
                 if verbose:
-                    print "Source path is set to: {0}".format(data[1])
+                    print( "Source path is set to:",data[1])
             elif data[0] == "CheckIfMounted":
                 check_if_mounted = yesNo( data[1] )
                 if verbose:
-                    print "Check if root is mounted: {0}".format(check_if_mounted)
+                    print( "Check if root is mounted:",check_if_mounted )
         #if check_if_mounted and not os.path.ismount( root ):
         if check_if_mounted and not os.path.ismount( root ):
             raise RuntimeError("[Error] Root path is not mounted! Abort!")
@@ -164,7 +164,7 @@ class PicMover:
         d = os.path.dirname(f)
         if not os.path.exists(d):
             os.makedirs(d)
-            print "Created path", f
+            print( "Created path", f )
     # strips the path name and just return the name of the file
     # e.g path/to/file/pic.NEF -> pic.NEF
     def stripPath(self, path, filename, offset = 1):
@@ -187,11 +187,11 @@ class PicMover:
             if not os.path.exists(writepath):
                 shutil.copy2(filepath,writepath)
                 if self.verbose:
-                    print " -Moved to", writepath
+                    print( " -Moved to", writepath )
                 if self.move: os.remove( filepath )
         else:
             if self.verbose:
-                print " -Moved to", writepath
+                print( " -Moved to", writepath )
                     
 
     def add_path(self, metadata, exif, data ):
@@ -208,19 +208,19 @@ class PicMover:
         key = data.date
         path_to_events = data.target_path + path
         matches = glob.glob(path_to_events + key + '*')
-        print camera, maker
+        print( camera, maker )
         answer = 'n'
         # Found potential matching events 
         if len(matches):
             while( True ):
-                print "Found events matching the date. Use one of these instead?"
+                print( "Found events matching the date. Use one of these instead?" )
 
                 for i,m in enumerate(matches):
-                    print "- [{0}] add to: {1}"\
-                        .format(i, self.stripPath( path_to_events, m, 0 ))
-                answer = raw_input("- [n] to create a new.\n"
-                                   "- [i] to ignore this event.\n"
-                                   "- Type one of the options above: ")
+                    print( "- [{0}] add to: {1}"
+                           .format(i, self.stripPath( path_to_events, m, 0 )))
+                answer = input("- [n] to create a new.\n"
+                               "- [i] to ignore this event.\n"
+                               "- Type one of the options above: ")
 
                 if answer.isdigit() and int(answer) < len(matches) :
                     event = self.stripPath( path_to_events, matches[int(answer)], 0 )
@@ -228,8 +228,8 @@ class PicMover:
                     break
                 elif answer == "n":
                     # Ask for name 
-                    name = raw_input('[{0}] Name of event ( {1} <name> ): '
-                                     .format(data.filetype, data.date))
+                    name = input('[{0}] Name of event ( {1} <name> ): '
+                                 .format(data.filetype, data.date))
                     # Add date + name
                     path += '{0} {1}/'.format(data.date, name)
                     # Add path to dict
@@ -239,7 +239,7 @@ class PicMover:
                     self.ignore[ key ] = True
                     break
                 else:
-                    print 'Unknown option, try again.'
+                    print( 'Unknown option, try again.' )
        
     def add_file( self, filename, exif, filetype, target_path ):
         # go to the correct folder e.g. ~/Nikon/D7000/2011/
@@ -269,7 +269,8 @@ class PicMover:
 
 
     def print_process(self,type_name, filename, count, total):
-        print "Processing {0} : {1} [{2}/{3}]".format(type_name, filename, count, total)
+        print( "Processing {0} : {1} [{2}/{3}]"
+               .format(type_name, filename, count, total) )
 
     # moves the file based on metadata (user comment and date)
     def exe(self):
@@ -280,7 +281,7 @@ class PicMover:
 #        pdb.set_trace()
         # Scan for paths
         if self.verbose:
-            print "[------------- Scaning for files ---------------]"
+            print( "[------------- Scaning for files ---------------]" )
 
         filenames_raw = []
         filenames_jpg = []
@@ -295,11 +296,11 @@ class PicMover:
         total = len(filenames_raw) + len(filenames_jpg) + len(filenames_mov)
 
         if total == 0:
-            print "No files found, exit program."
+            print( "No files found, exit program." )
             return
 
         if self.verbose:
-            print "[-------------- Preping files ------------------]"
+            print( "[-------------- Preping files ------------------]" )
         exif_img = ExifImg()
         exif_mov = ExifMov()
 
@@ -313,7 +314,7 @@ class PicMover:
             self.add_file(filename, exif_mov, 'MOV', self.TARGET_VIDEO_PATH )
 
         if self.verbose:
-            print "[--------------- Moving files ------------------]"
+            print( "[--------------- Moving files ------------------]" )
 
         count = 1
 
@@ -334,7 +335,7 @@ class PicMover:
             self.print_process( type_name, filename, count, total )
             self.process_file(filename, self.subdir_mov, self.TARGET_VIDEO_PATH)
             count += 1
-        print "done"
+        print( "done" )
 
 # Based on Guido van Rossu's main function
 class Usage(Exception):
@@ -342,15 +343,16 @@ class Usage(Exception):
         self.msg = msg
 
 def process(arg):
-    print arg
+    print( arg )
 
 def main(argv=None):
 
     if argv is None:
         argv = sys.argv
 
-    parser = argparse.ArgumentParser(description = "picmover: Simple program that moves"
-                                     " images according to metadata")
+    parser = argparse\
+        .ArgumentParser( description = "picmover: Simple program that "
+                         "moves images according to metadata")
     parser.add_argument("-v", action="store_true", default=False, dest='verbose',
                         help="More text, i.e. verbose")
     parser.add_argument("-m","--mv", action="store_true", default=False, dest='move',
