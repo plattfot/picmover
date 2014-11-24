@@ -30,27 +30,18 @@ except ImportError:
     exit('You need to install gexiv2 first.')
 
 from collections import defaultdict
-############# Hachoir stuff ##################
-try:
-    from hachoir_core.error import HachoirError
-    from hachoir_core.cmd_line import unicodeFilename
-    from hachoir_parser import createParser
-    from hachoir_core.tools import makePrintable
-    from hachoir_metadata import extractMetadata
-    from hachoir_core.i18n import getTerminalCharset
-except ImportError:
-    exit('You need to install hachoir first')
 
 from sys import argv, stderr, exit
+from collections import namedtuple
+
 ##############################################
+FileData = namedtuple("FileData", "date, filetype, target_path ")
 
-
-__doc__ = """PicMover: \n\tSimple class that extracts metadata from an image pool \n\tand moves them to a dir named with date and user comment.
-To run simply execute PicMover.py where the pictures are.
-Flags:
-verbose\t-v
-Created by: Fredrik "PlaTFooT" Salomonsson plattfot@gmail.com.
-"""
+__doc__ = """PicMover: \n\tSimple class that extracts metadata from an image
+pool \n\tand moves them to a dir named with date and user comment.  To
+run simply execute PicMover.py where the pictures are.  Flags:
+verbose\t-v Created by: Fredrik "PlaTFooT" Salomonsson
+plattfot@gmail.com.  """
 
 def yesNo( x ):
     if x.lower() == 'yes' or x.lower() == 'true':
@@ -58,6 +49,36 @@ def yesNo( x ):
     else:
         return False
 
+class ExifImg:
+    """Extract metadata from images"""
+    def model( self, metadata ):
+        return metadata['Exif.Image.Model']
+    def make( self, metadata ):
+        return metadata['Exif.Image.Make']
+    def date( self, metadata ):
+        date = str(datetime.datetime.today())
+        if 'Exif.Image.DateTimeOriginal' in metadata:
+            date = metadata['Exif.Image.DateTimeOriginal'].split()[0]
+        elif 'Exif.Photo.DateTimeOriginal' in metadata:
+            date = metadata['Exif.Photo.DateTimeOriginal'].split()[0]
+        else:
+            print "[Warning] Couldn't find date! Using today's date instead."
+        return date
+        
+class ExifMov:
+    """Extract metadata from mov files"""
+    def model( self, metadata ):
+        return metadata['Xmp.video.Model']
+    def make( self, metadata ):
+        return metadata['Xmp.video.Make']
+    def date( self, metadata ):
+        date = str(datetime.datetime.today())
+        if 'Xmp.video.DateTimeOriginal' in metadata:
+            date = metadata['Xmp.video.DateTimeOriginal'].split()[0]
+        else:
+            print "[Warning] Couldn't find date! Using today's date instead."
+        return date
+    
 class PicMover:
  
     # python constructor
@@ -105,18 +126,20 @@ class PicMover:
                 if not os.path.ismount( data[1] ):
                     raise RuntimeError("[Error] Root path is not mounted! Abort!")
                 if verbose:
-                    print "Source path is set to:",data[1]
+                    print "Source path is set to: {0}".format(data[1])
             elif data[0] == "CheckIfMounted":
                 check_if_mounted = yesNo( data[1] )
                 if verbose:
-                    print "Check if root is mounted:", check_if_mounted
+                    print "Check if root is mounted: {0}".format(check_if_mounted)
         #if check_if_mounted and not os.path.ismount( root ):
         if check_if_mounted and not os.path.ismount( root ):
             raise RuntimeError("[Error] Root path is not mounted! Abort!")
         
         # Only add '/' if the *_path doesn't start with '/'
-        self.TARGET_IMAGE_PATH = root + ('/' if image_path[0] != '/' else '') + image_path
-        self.TARGET_VIDEO_PATH = root + ('/' if video_path[0] != '/' else '') + video_path 
+        self.TARGET_IMAGE_PATH = root + ('/' if image_path[0] != '/' else '')\
+                                 + image_path
+        self.TARGET_VIDEO_PATH = root + ('/' if video_path[0] != '/' else '')\
+                                 + video_path 
         self.subdir_raw = 'raw/'
         self.subdir_jpg = 'JPEG/'
         self.subdir_mov = 'mov/'
@@ -128,9 +151,11 @@ class PicMover:
         self.mov_keys = {}
         self.img_keys = {}
         self.verbose = verbose
-        self.pattern_raw = re.compile('\.(3fr|ari|arw|bay|crw|cr2|cap|dcs|dcr|dng|drf|eip|erf '
-                                      '|fff|iiq|k25|kdc|mdc|mef|mos|mrw|nef|nrw|obm|orf|pef|'
-                                      'ptx|pxn|r3d|raf|raw|rwl|rw2|rwz|sr2|srf|srw|x3f)', re.IGNORECASE)
+        raw_ext = '(3fr|ari|arw|bay|crw|cr2|cap|dcs|dcr|'\
+                  'dng|drf|eip|erf|fff|iiq|k25|kdc|mdc|mef|'\
+                  'mos|mrw|nef|nrw|obm|orf|pef|ptx|pxn|r3d|'\
+                  'raf|raw|rwl|rw2|rwz|sr2|srf|srw|x3f)'
+        self.pattern_raw = re.compile('\.{0}'.format(raw_ext), re.IGNORECASE)
         self.pattern_jpg = re.compile('\.jpe{0,1}g', re.IGNORECASE)
         self.pattern_mov = re.compile('\.mov', re.IGNORECASE)
 
@@ -169,139 +194,78 @@ class PicMover:
                 print " -Moved to", writepath
                     
 
-    def add_path(self, metadata, date, img_type ):
+    def add_path(self, metadata, exif, data ):
         # Get camera maker
-        maker = metadata['Exif.Image.Make']
+        maker = exif.make( metadata )
         # Choose first ( remove corporation from nikon)
         maker = maker.split()[0]
         # Get camera model
-        camera = metadata['Exif.Image.Model']
+        camera = exif.model( metadata )
         if 'NIKON' in camera:
             camera = camera.split()
             camera = camera[1]
-        path = '/' + maker.capitalize()+'/'+ \
-            camera+'/'+                      \
-            date[0:4]+'/'
-        key = date
-        path_to_events = self.TARGET_IMAGE_PATH + path
+        path = '/{0}/{1}/{2}/'.format(maker.capitalize(), camera, data.date[0:4])
+        key = data.date
+        path_to_events = data.target_path + path
         matches = glob.glob(path_to_events + key + '*')
         print camera, maker
         answer = 'n'
         # Found potential matching events 
         if len(matches):
-            print "Found events matching the date. Use one of these instead?"
+            while( True ):
+                print "Found events matching the date. Use one of these instead?"
 
-            for i,m in enumerate(matches):
-                print "[" + str(i) + "] " + self.stripPath( path_to_events, m, 0 )
-                answer = raw_input("Type the number matching the event, "
-                                   "[n] to create a new and "
-                                   "[i] to ignore this event: ")
-                
-        if answer.isdigit() and int(answer) < len(matches) :
-            self.writepath[ key ] = '/' + maker.capitalize()+'/'+ \
-                                    camera+'/'+                   \
-                                    date[0:4]+ '/' +\
-                                    self.stripPath( path_to_events, 
-                                                     matches[int(answer)], 0 ) + '/'
-        elif answer == "n":
-            # Ask for name 
-            name = raw_input("["+img_type+"] Name of event ( " + key +" <name> ): ")
-            
-            # Add date + name
-            path += date + ' ' + name +'/' 
-            
-            # Add path to dict
-            self.writepath[ key ] = path
-        else:
-            self.ignore[ key ] = True
+                for i,m in enumerate(matches):
+                    print "- [{0}] add to: {1}"\
+                        .format(i, self.stripPath( path_to_events, m, 0 ))
+                answer = raw_input("- [n] to create a new.\n"
+                                   "- [i] to ignore this event.\n"
+                                   "- Type one of the options above: ")
+
+                if answer.isdigit() and int(answer) < len(matches) :
+                    event = self.stripPath( path_to_events, matches[int(answer)], 0 )
+                    self.writepath[ key ] = '{0}{1}/'.format( path, event )
+                    break
+                elif answer == "n":
+                    # Ask for name 
+                    name = raw_input('[{0}] Name of event ( {1} <name> ): '
+                                     .format(data.filetype, data.date))
+                    # Add date + name
+                    path += '{0} {1}/'.format(data.date, name)
+                    # Add path to dict
+                    self.writepath[ key ] = path
+                    break
+                elif answer == 'i':
+                    self.ignore[ key ] = True
+                    break
+                else:
+                    print 'Unknown option, try again.'
        
-    def add_path_img( self, filename, img_type ):
+    def add_file( self, filename, exif, filetype, target_path ):
         # go to the correct folder e.g. ~/Nikon/D7000/2011/
         # Get the metadata from the image
-        metadata = GExiv2.Metadata(filename)
+        metadata = GExiv2.Metadata( filename )
 
         # Extract usfull information from the metadata object
-        date = str(datetime.datetime.today())
-        if 'Exif.Image.DateTime' in metadata:
-            date = metadata['Exif.Image.DateTime'].split()[0]
-        elif 'Exif.Photo.DateTimeOriginal' in metadata:
-            date = metadata['Exif.Photo.DateTimeOriginal'].split()[0]
-        else:
-            print "[Warning] Couldn't find date! Using today's date instead."
+        date = exif.date( metadata )
         # GExiv2 format the date with : instead of -.
         date=date.replace(":","-")
         # Hash key to filename to avoid parse metadata twice
         self.img_keys[ filename ] = date
-
-        if (date not in self.writepath) and (date not in self.ignore):
-            self.add_path( metadata, date, img_type )
-
-    def add_path_mov( self, filename ):
         
-        # Kind of complicated way of of checking the date on the movie
-        # A naive way to move the .mov file
-
-        filename, realname = unicodeFilename(filename), filename
-        parser = createParser(filename, realname)
-        if not parser:
-            print >>stderr, "Unable to parse file"
-            exit(1)
-        try:
-            metadata = extractMetadata(parser)
-        except HachoirError, err:
-            print "Metadata extraction error: %s" % unicode(err)
-            metadata = None
-        if not metadata:
-            print "Unable to extract metadata"
-            exit(1)
-
-        text = metadata.exportPlaintext()
-       ## charset = getTerminalCharset()
-       ## for line in text:
-        test_str = "Creation date: "
-        start = len(test_str)
-        end = len("yyyy-mm-dd")
-        for line in text: 
-            pos = line.find(test_str)
-            if  pos > -1 :
-               date = line[start + pos:start + pos + end]
-               
-        if( len(date)== 0 ):
-            print "Didn't find any date"
-            date = raw_input("[MOV] Please type in year (YYYY): ")
-            date += '-' + raw_input("[MOV] Please type in month (MM): ")
-            date += '-' + raw_input("[MOV] Please type in day (DD): ")
-        # Hash realname to avoid parsing the metadata twice
-        self.mov_keys[ realname ] = date
-
-        if date not in self.writepath and date not in self.ignore:
-            path = '/' + self.camera_maker +'/'+ self.camera_model + '/' + date[0:4] + '/'
-            name = raw_input("[MOV] Name of event ( " + date +" <name> ): ")
-            # Add date + name
-            path += date + ' ' + name +'/' 
-            self.writepath[ date ] = path
+        if (date not in self.writepath) and (date not in self.ignore):
+            data = FileData( date, filetype, target_path )
+            self.add_path( metadata, exif, data )
             
-    def process_img(self, filename, subdir):
+    def process_file(self, filename, subdir, target_path):
     
         key = self.img_keys[filename]
         if self.ignore[ key ]:
             return
 
-        path = self.TARGET_IMAGE_PATH + self.writepath[ key ] + subdir
+        path = target_path + self.writepath[ key ] + subdir
         # Move file to the new path
         self.move_file(filename, path )  
-
-    def process_mov(self, filename, subdir):
-        
-        key = self.mov_keys[filename]
-        if self.ignore[ key ]:
-            return # Do nothing
-
-        if key in self.writepath:
-            path = self.TARGET_VIDEO_PATH + self.writepath[ key ]
-            self.move_file(filename, path )
-        else :
-            raise RunTimeError( "Didn't find the path matching the date!")
 
 
     def print_process(self,type_name, filename, count, total):
@@ -336,15 +300,17 @@ class PicMover:
 
         if self.verbose:
             print "[-------------- Preping files ------------------]"
+        exif_img = ExifImg()
+        exif_mov = ExifMov()
 
         for filename in filenames_raw:
-            self.add_path_img(filename, "RAW")
+            self.add_file(filename, exif_img, 'RAW', self.TARGET_IMAGE_PATH )
 
         for filename in filenames_jpg:
-            self.add_path_img(filename, "JPG")            
+            self.add_file(filename, exif_img, 'JPG', self.TARGET_IMAGE_PATH )
 
         for filename in filenames_mov:
-            self.add_path_mov(filename)
+            self.add_file(filename, exif_mov, 'MOV', self.TARGET_VIDEO_PATH )
 
         if self.verbose:
             print "[--------------- Moving files ------------------]"
@@ -354,19 +320,19 @@ class PicMover:
         for filename in filenames_raw:
             type_name = "raw image"
             self.print_process( type_name, filename, count, total )
-            self.process_img(filename, self.subdir_raw)
+            self.process_file(filename, self.subdir_raw, self.TARGET_IMAGE_PATH)
             count += 1
 
         for filename in filenames_jpg:
             type_name = "jpg image"
             self.print_process( type_name, filename, count, total )
-            self.process_img(filename, self.subdir_jpg)
+            self.process_file(filename, self.subdir_jpg, self.TARGET_IMAGE_PATH )
             count += 1
             
         for filename in filenames_mov:
             type_name = "movie"
             self.print_process( type_name, filename, count, total )
-            self.process_mov(filename, self.subdir_mov)
+            self.process_file(filename, self.subdir_mov, self.TARGET_VIDEO_PATH)
             count += 1
         print "done"
 
