@@ -1,7 +1,7 @@
 DOC_SRC := picmover.1 picmover.5
 DOC := $(patsubst %, doc/%.gz, $(DOC_SRC))
 SOURCE := picmover.py
-DESTDIR ?= /usr 
+DESTDIR ?= /usr
 PREFIX ?= src
 
 all: $(DOC) | $(PREFIX) 
@@ -25,9 +25,9 @@ install: $(DOC) | $(DESTDIR)
 	cp --parents bin/picmover share/man/man1/picmover.1.gz share/man/man5/picmover.5.gz $(DESTDIR)
 
 uninstall: 
-	@rm -fv $(DESTDIR)/bin/picmover
-	@rm -fv $(DESTDIR)/share/man/man1/picmover.1.gz
-	@rm -fv $(DESTDIR)/share/man/man5/picmover.5.gz
+	@rm -fv $(strip $(DESTDIR))/bin/picmover
+	@rm -fv $(strip $(DESTDIR))/share/man/man1/picmover.1.gz
+	@rm -fv $(strip $(DESTDIR))/share/man/man5/picmover.5.gz
 
 clean:
 	rm -rfv $(PREFIX)
