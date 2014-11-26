@@ -1,3 +1,6 @@
 # ignoring test files
 testfiles
 unittest
+doc/.*
+doc/*.gz
+src
