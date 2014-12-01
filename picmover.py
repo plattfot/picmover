@@ -208,11 +208,13 @@ class PicMover:
         key = data.date
         path_to_events = data.target_path + path
         matches = glob.glob(path_to_events + key + '*')
-        print( camera, maker )
+        print( maker, camera )
+     
         answer = 'n'
         # Found potential matching events 
-        if len(matches):
-            while( True ):
+
+        while( True ):
+            if len(matches):
                 print( "Found events matching the date. Use one of these instead?" )
 
                 for i,m in enumerate(matches):
@@ -222,24 +224,24 @@ class PicMover:
                                "- [i] to ignore this event.\n"
                                "- Type one of the options above: ")
 
-                if answer.isdigit() and int(answer) < len(matches) :
-                    event = self.stripPath( path_to_events, matches[int(answer)], 0 )
-                    self.writepath[ key ] = '{0}{1}/'.format( path, event )
-                    break
-                elif answer == "n":
-                    # Ask for name 
-                    name = input('[{0}] Name of event ( {1} <name> ): '
-                                 .format(data.filetype, data.date))
-                    # Add date + name
-                    path += '{0} {1}/'.format(data.date, name)
-                    # Add path to dict
-                    self.writepath[ key ] = path
-                    break
-                elif answer == 'i':
-                    self.ignore[ key ] = True
-                    break
-                else:
-                    print( 'Unknown option, try again.' )
+            if answer.isdigit() and int(answer) < len(matches) :
+                event = self.stripPath( path_to_events, matches[int(answer)], 0 )
+                self.writepath[ key ] = '{0}{1}/'.format( path, event )
+                break
+            elif answer == "n":
+                # Ask for name 
+                name = input('[{0}] Name of event ( {1} <name> ): '
+                             .format(data.filetype, data.date))
+                # Add date + name
+                path += '{0} {1}/'.format(data.date, name)
+                # Add path to dict
+                self.writepath[ key ] = path
+                break
+            elif answer == 'i':
+                self.ignore[ key ] = True
+                break
+            else:
+                print( 'Unknown option, try again.' )
        
     def add_file( self, filename, exif, filetype, target_path ):
         # go to the correct folder e.g. ~/Nikon/D7000/2011/
