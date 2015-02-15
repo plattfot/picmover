@@ -82,7 +82,7 @@ class ExifMov:
 class PicMover:
  
     # python constructor
-    def __init__(self, path, dry_run = False, move = False, verbose = False):
+    def __init__(self, path, dry_run = False, move = False, verbose = False, ignore=False ):
         # Convert ~/ to relative path if needed.
         expanded_path = os.path.expanduser( path )
         # Init variables
@@ -151,6 +151,7 @@ class PicMover:
         self.mov_keys = {}
         self.img_keys = {}
         self.verbose = verbose
+        self.ignore_always = ignore 
         raw_ext = '(3fr|ari|arw|bay|crw|cr2|cap|dcs|dcr|'\
                   'dng|drf|eip|erf|fff|iiq|k25|kdc|mdc|mef|'\
                   'mos|mrw|nef|nrw|obm|orf|pef|ptx|pxn|r3d|'\
@@ -211,18 +212,21 @@ class PicMover:
         print( maker, camera )
      
         answer = 'n'
-        # Found potential matching events 
 
         while( True ):
             if len(matches):
-                print( "Found events matching the date. Use one of these instead?" )
+                if not self.ignore_always:
 
-                for i,m in enumerate(matches):
-                    print( "- [{0}] add to: {1}"
-                           .format(i, self.stripPath( path_to_events, m, 0 )))
-                answer = input("- [n] to create a new.\n"
-                               "- [i] to ignore this event.\n"
-                               "- Type one of the options above: ")
+                    print( "Found events matching the date. Use one of these instead?" )
+
+                    for i,m in enumerate(matches):
+                        print( "- [{0}] add to: {1}"
+                               .format(i, self.stripPath( path_to_events, m, 0 )))
+                        answer = input("- [n] to create a new.\n"
+                                       "- [i] to ignore this event.\n"
+                                       "- Type one of the options above: ")
+                else: # always ignore matching events
+                    answer = "i"
 
             if answer.isdigit() and int(answer) < len(matches) :
                 event = self.stripPath( path_to_events, matches[int(answer)], 0 )
@@ -243,6 +247,8 @@ class PicMover:
             else:
                 print( 'Unknown option, try again.' )
        
+    
+
     def add_file( self, filename, exif, filetype, target_path ):
         # go to the correct folder e.g. ~/Nikon/D7000/2011/
         # Get the metadata from the image
@@ -361,6 +367,8 @@ def main(argv=None):
                         help="Moves the target images, not just copying them to the target position")
     parser.add_argument("-n", action="store_true", default=False, dest='dry_run',
                         help="Dry run, execute all actions but doesn't move any files. Good for testing.")
+    parser.add_argument("-i","--ignore", action="store_true", default=False,dest='ignore',
+                        help="Ignore media files which timestamp matches an already existing directory.")
     ### parser.add_argument("--camera-model", default='D7000', dest='camera_model',
     ###                     help="Set camera model incase no model can be found in metadata.")
     ### parser.add_argument("--camera-maker", default='Nikon', dest='camera_maker',
@@ -372,7 +380,8 @@ def main(argv=None):
     pm = PicMover( result.path, 
                    verbose = result.verbose, 
                    dry_run = result.dry_run,
-                   move = result.move )
+                   move = result.move,
+                   ignore = result.ignore )
     # pm.verbose      = result.verbose
     # pm.move         = result.move
     # pm.dry_run      = result.dry_run
