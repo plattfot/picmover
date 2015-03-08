@@ -48,13 +48,19 @@ def yesNo( x ):
         return True
     else:
         return False
+def getMetadata( metadata, key ):
+    if key in metadata:
+        return metadata[key]
+    else:
+        print("[Error] Exif data {0} doesn't exist! Returning \"Unknown\".")
+        return "Unknown"
 
 class ExifImg:
     """Extract metadata from images"""
     def model( self, metadata ):
-        return metadata['Exif.Image.Model']
+        return getMetadata( Metadata, 'Exif.Image.Model')
     def make( self, metadata ):
-        return metadata['Exif.Image.Make']
+        return getMetadata( metadata, 'Exif.Image.Make')
     def date( self, metadata ):
         date = str(datetime.datetime.today())
         if 'Exif.Image.DateTimeOriginal' in metadata:
@@ -68,9 +74,9 @@ class ExifImg:
 class ExifMov:
     """Extract metadata from mov files"""
     def model( self, metadata ):
-        return metadata['Xmp.video.Model']
+        return getMetadata( metadata, 'Xmp.video.Model')
     def make( self, metadata ):
-        return metadata['Xmp.video.Make']
+        return getMetadata( metadata, 'Xmp.video.Make')
     def date( self, metadata ):
         date = str(datetime.datetime.today())
         if 'Xmp.video.DateTimeOriginal' in metadata:
