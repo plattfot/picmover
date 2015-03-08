@@ -4,3 +4,4 @@ unittest
 doc/.*
 doc/*.gz
 src
+private
