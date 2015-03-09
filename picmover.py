@@ -17,6 +17,7 @@
 import os
 import shutil # moving and deleting files
 import glob   # get files from a directory
+
 # Should be read from a .config file later on
 import sys
 import argparse
@@ -28,6 +29,9 @@ try:
     from gi.repository import GExiv2
 except ImportError:
     exit('You need to install gexiv2 first.')
+# For gps
+from urllib.request import urlopen
+import xml.etree.ElementTree as ET
 
 from collections import defaultdict
 
@@ -79,11 +83,19 @@ class ExifImg:
             print( "[Warning] Couldn't find date! Using today's date instead." )
             date = str(datetime.datetime.today()).split()[0]
         return date
-        
+    def gps(self, metadata ):
+        if 'Exif.GPSInfo.GPSLatitude' in metadata and\
+           'Exif.GPSInfo.GPSLongitude' in metadata:
+            return [metadata.get_gps_latitude(), metadata.get_gps_longitude()]
+        else:
+            return []
+
 class ExifMov:
     """Extract metadata from mov files"""
     def __init__(self):
         self.apple_re = re.compile("Apple[0-9+.]+")
+        self.gps_re = re.compile("([+-][0-9]+\.[0-9]+)([+-][0-9]+\.[0-9]+)")
+        
     def model( self, metadata ):
         return getMetadata( metadata, 'Xmp.video.Model')
     def make( self, metadata ):
@@ -102,11 +114,21 @@ class ExifMov:
             print( "[Warning] Couldn't find date! Using today's date instead." )
             date = str(datetime.datetime.today()).split()[0]
         return date
+
+    def gps(self, metadata ):
+        if 'Xmp.video.GPSCoordinates' in metadata:
+            coords_raw = metadata['Xmp.video.GPSCoordinates']
+            match = re.match(self.gps_re, coords_raw)
+            if match is not None:
+                return [match.group(1),match.group(2)]
+        else:
+            return []
     
 class PicMover:
  
     # python constructor
-    def __init__(self, path, dry_run = False, move = False, verbose = False, date_only = False, ignore_all = False):
+    def __init__(self, path, gps_option, dry_run = False, move = False, 
+                 verbose = False, date_only = False, ignore_all = False ):
         # Convert ~/ to relative path if needed.
         expanded_path = os.path.expanduser( path )
         # Init variables
@@ -183,12 +205,46 @@ class PicMover:
         self.pattern_jpg = re.compile('\.jpe{0,1}g', re.IGNORECASE)
         self.pattern_mov = re.compile('\.mov', re.IGNORECASE)
 
+        self.setGPS( gps_option )
     # checks if a directory exists, if not it creates it
     def ensureDir(self, f):
         d = os.path.dirname(f)
         if not os.path.exists(d):
             os.makedirs(d)
             print( "Created path", f )
+
+    def setGPS(self, gps_option ):
+        if len(gps_option):
+            self.gps_option = gps_option
+            self.use_gps = True
+        else:
+            self.use_gps = False
+            
+    # Returns an xml tree of the search
+    def gpsQuery( self, coords ):
+         html = urlopen("http://nominatim.openstreetmap.org/reverse?format=xml&lat={0}&lon={1}".format( coords[0], coords[1]))
+         return ET.fromstring( html.read() )
+             
+    def getGPSName(self, exif, metadata ):
+        coordinates = exif.gps(metadata)
+        name = ''
+        if len(coordinates):
+            xml = self.gpsQuery( coordinates )
+            if xml is not None:
+                
+                # if self.verbose:
+                #     print("Address from GPS: {0}".format(xml[0].text) )
+                for opt in self.gps_option:
+                    if opt == 'full':
+                        name = xml[0].text
+                        break
+                    elm = xml[1].find( opt )
+                    if elm is not None:
+                        print( "tag = {0}, text = {1}".format(elm.tag, elm.text))
+                        name += ", {0}".format(elm.text)
+                        
+        return name[2:]
+
     # strips the path name and just return the name of the file
     # e.g path/to/file/pic.NEF -> pic.NEF
     def stripPath(self, path, filename, offset = 1):
@@ -239,7 +295,14 @@ class PicMover:
                                    "- Type one of the options above: ")
                 else:
                     answer = 'i'
+            if self.use_gps:
+                name = self.getGPSName(exif, metadata )
 
+                # Empty string means that it didn't have any valid gps info
+                if len(name):
+                    self.writepath[data.key] = '{0}{1} {2}/'.format( path, data.date, name )
+                    break
+            
             if answer.isdigit() and int(answer) < len(matches) :
                 event = self.stripPath( path_to_events, matches[int(answer)], 0 )
                 self.writepath[ data.key ] = '{0}{1}/'.format( path, event )
@@ -396,9 +459,13 @@ def main(argv=None):
                         help="Will ignore all files where a directory with the same date exist in the destination directory.")
     parser.add_argument("-c", default='~/.picmoverrc', dest='path',
                         help="Config file to load.")
-
+    parser.add_argument("-g","--gps", dest="gps",nargs='*',
+                        help="Use the gps location to name the destination dir. "
+                        "See https://wiki.openstreetmap.org/wiki/Nominatim#Example "
+                        "under addressparts for arguments for GPS.")
     result = parser.parse_args()
     pm = PicMover( result.path, 
+                   result.gps,
                    verbose = result.verbose, 
                    dry_run = result.dry_run,
                    move = result.move,
