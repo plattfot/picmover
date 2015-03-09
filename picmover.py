@@ -35,7 +35,7 @@ from sys import argv, stderr, exit
 from collections import namedtuple
 
 ##############################################
-FileData = namedtuple("FileData", "date, filetype, target_path ")
+FileData = namedtuple("FileData", "key, date, make, model, filetype, target_path")
 
 __doc__ = """PicMover: \n\tSimple class that extracts metadata from an image
 pool \n\tand moves them to a dir named with date and user comment.  To
@@ -120,7 +120,6 @@ class PicMover:
         # Read settings
         f = open( expanded_path, "r")
         for line in f:
-            #data = re.findall(r'.*[ ]',line)
             data = line.split()
             # Check if data has no entries
             if len(data) == 0:
@@ -220,15 +219,10 @@ class PicMover:
                     
 
     def add_path(self, metadata, exif, data ):
-        # Get camera maker
-        maker = exif.make( metadata )
-        # Get camera model
-        camera = exif.model( metadata )
-        path = '/{0}/{1}/{2}/'.format(maker.capitalize(), camera, data.date[0:4])
-        key = data.date
+        path = '/{0}/{1}/{2}/'.format( data.make.capitalize(), data.model, data.date[0:4])
         path_to_events = data.target_path + path
-        matches = glob.glob(path_to_events + key + '*')
-        print( maker, camera )
+        matches = glob.glob(path_to_events + data.date + '*')
+        print( data.make, data.model )
         # Found potential matching events 
         answer = 'n'
         num_matches = len(matches)
@@ -248,7 +242,7 @@ class PicMover:
 
             if answer.isdigit() and int(answer) < len(matches) :
                 event = self.stripPath( path_to_events, matches[int(answer)], 0 )
-                self.writepath[ key ] = '{0}{1}/'.format( path, event )
+                self.writepath[ data.key ] = '{0}{1}/'.format( path, event )
                 break
             elif answer == "n":
                 name = ''
@@ -264,10 +258,10 @@ class PicMover:
                     path += '{0}/'.format(data.date)
 
                 # Add path to dict
-                self.writepath[ key ] = path
+                self.writepath[ data.key ] = path
                 break
             elif answer == 'i':
-                self.ignore[ key ] = True
+                self.ignore[ data.key ] = True
                 break
             else:
                 print( 'Unknown option, try again.' )
@@ -276,16 +270,20 @@ class PicMover:
         # go to the correct folder e.g. ~/Nikon/D7000/2011/
         # Get the metadata from the image
         metadata = GExiv2.Metadata( filename )
-
         # Extract usfull information from the metadata object
+
+        make = exif.make( metadata )
+        model = exif.model( metadata )
         date = exif.date( metadata )
         # GExiv2 format the date with : instead of -.
         date=date.replace(":","-")
-        # Hash key to filename to avoid parse metadata twice
-        self.img_keys[ filename ] = date
+        # Create key to filename to acoid parsing metadata twice
+        key =  "{0}{1}{2}".format( make, model, date )
+
+        self.img_keys[ filename ] = key
         
-        if (date not in self.writepath) and (date not in self.ignore):
-            data = FileData( date, filetype, target_path )
+        if (key not in self.writepath) and (key not in self.ignore):
+            data = FileData( key, date, make, model, filetype, target_path )
             self.add_path( metadata, exif, data )
             
     def process_file(self, filename, subdir, target_path):
@@ -406,11 +404,6 @@ def main(argv=None):
                    move = result.move,
                    date_only = result.date_only,
                    ignore_all = result.ignore_all )
-    # pm.verbose      = result.verbose
-    # pm.move         = result.move
-    # pm.dry_run      = result.dry_run
-    # pm.camera_maker = result.camera_maker
-    # pm.camera_model = result.camera_model
     pm.exe()
     return 0
     
