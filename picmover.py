@@ -93,11 +93,19 @@ class ExifImg:
 class ExifMov:
     """Extract metadata from mov files"""
     def __init__(self):
-        self.apple_re = re.compile("Apple[0-9+.]+")
+        self.apple_re = re.compile("Apple[0-9+-.]+")
+        self.iphone_re = re.compile("iPhone ([0-9s]+)-[0-9+-.]+")
         self.gps_re = re.compile("([+-][0-9]+\.[0-9]+)([+-][0-9]+\.[0-9]+)")
         
     def model( self, metadata ):
-        return getMetadata( metadata, 'Xmp.video.Model')
+        model = getMetadata( metadata, 'Xmp.video.Model')
+        # For iphone 4, apple appends some sort of id after the model
+        # so just remove that.
+        match =  re.match(self.iphone_re, model )
+        if match:
+            model = 'iPhone {0}'.format(match.group(1))
+        return model
+
     def make( self, metadata ):
         make = getMetadata( metadata, 'Xmp.video.Make')
         # For iphone 4, apple appends some sort of id after the make
@@ -202,9 +210,9 @@ class PicMover:
                   'dng|drf|eip|erf|fff|iiq|k25|kdc|mdc|mef|'\
                   'mos|mrw|nef|nrw|obm|orf|pef|ptx|pxn|r3d|'\
                   'raf|raw|rwl|rw2|rwz|sr2|srf|srw|x3f)'
-        self.pattern_raw = re.compile('\.{0}'.format(raw_ext), re.IGNORECASE)
-        self.pattern_jpg = re.compile('\.jpe{0,1}g', re.IGNORECASE)
-        self.pattern_mov = re.compile('\.mov', re.IGNORECASE)
+        self.pattern_raw = re.compile('\.{0}$'.format(raw_ext), re.IGNORECASE)
+        self.pattern_jpg = re.compile('\.jpe{0,1}g$', re.IGNORECASE)
+        self.pattern_mov = re.compile('\.mov$', re.IGNORECASE)
 
         self.setGPS( gps_option )
         self.match = match
