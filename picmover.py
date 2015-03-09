@@ -127,6 +127,7 @@ class ExifMov:
 class PicMover:
  
     # python constructor
+
     def __init__(self, path, gps_option, dry_run = False, move = False, 
                  verbose = False, date_only = False, ignore_all = False ):
         # Convert ~/ to relative path if needed.
@@ -197,6 +198,7 @@ class PicMover:
         self.mov_keys = {}
         self.img_keys = {}
         self.verbose = verbose
+        self.ignore_always = ignore 
         raw_ext = '(3fr|ari|arw|bay|crw|cr2|cap|dcs|dcr|'\
                   'dng|drf|eip|erf|fff|iiq|k25|kdc|mdc|mef|'\
                   'mos|mrw|nef|nrw|obm|orf|pef|ptx|pxn|r3d|'\
@@ -277,6 +279,7 @@ class PicMover:
     def add_path(self, metadata, exif, data ):
         path = '/{0}/{1}/{2}/'.format( data.make.capitalize(), data.model, data.date[0:4])
         path_to_events = data.target_path + path
+
         matches = glob.glob(path_to_events + data.date + '*')
         print( data.make, data.model )
         # Found potential matching events 
@@ -329,6 +332,8 @@ class PicMover:
             else:
                 print( 'Unknown option, try again.' )
        
+    
+
     def add_file( self, filename, exif, filetype, target_path ):
         # go to the correct folder e.g. ~/Nikon/D7000/2011/
         # Get the metadata from the image
