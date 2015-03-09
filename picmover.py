@@ -242,7 +242,6 @@ class PicMover:
                         break
                     elm = xml[1].find( opt )
                     if elm is not None:
-                        print( "tag = {0}, text = {1}".format(elm.tag, elm.text))
                         name += ", {0}".format(elm.text)
                         
         return name[2:]
