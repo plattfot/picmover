@@ -129,7 +129,7 @@ class PicMover:
     # python constructor
 
     def __init__(self, path, gps_option, dry_run = False, move = False, 
-                 verbose = False, date_only = False, ignore_all = False ):
+                 verbose = False, date_only = False, ignore_all = False, match=None ):
         # Convert ~/ to relative path if needed.
         expanded_path = os.path.expanduser( path )
         # Init variables
@@ -207,6 +207,8 @@ class PicMover:
         self.pattern_mov = re.compile('\.mov', re.IGNORECASE)
 
         self.setGPS( gps_option )
+        self.match = match
+        
     # checks if a directory exists, if not it creates it
     def ensureDir(self, f):
         d = os.path.dirname(f)
@@ -215,7 +217,7 @@ class PicMover:
             print( "Created path", f )
 
     def setGPS(self, gps_option ):
-        if len(gps_option):
+        if gps_option is not None:
             self.gps_option = gps_option
             self.use_gps = True
         else:
@@ -273,7 +275,8 @@ class PicMover:
             if self.verbose:
                 print( " -Moved to", writepath )
                     
-
+    def printMatch(self, matches, idx ):
+        print("Found events using match {0}: {1}".format(idx, matches[idx]))
     def add_path(self, metadata, exif, data ):
         path = '/{0}/{1}/{2}/'.format( data.make.capitalize(), data.model, data.date[0:4])
         path_to_events = data.target_path + path
@@ -286,14 +289,22 @@ class PicMover:
         while( True ):
             if num_matches:
                 if not self.ignore_all:
-                    print( "Found events matching the date. Use one of these instead?" )
-
-                    for i,m in enumerate(matches):
-                        print( "- [{0}] add to: {1}"
-                               .format(i, self.stripPath( path_to_events, m, 0 )))
-                    answer = input("- [n] to create a new.\n"
-                                   "- [i] to ignore this event.\n"
-                                   "- Type one of the options above: ")
+                    if self.match is None:
+                        print( "Found events matching the date. Use one of these instead?" )
+                        for i,m in enumerate(matches):
+                            print( "- [{0}] add to: {1}"
+                                   .format(i, self.stripPath( path_to_events, m, 0 )))
+                        answer = input("- [n] to create a new.\n"
+                                       "- [i] to ignore this event.\n"
+                                       "- Type one of the options above: ")
+                    elif self.match[0] < num_matches:
+                        self.printMatch( matches, self.match[0] )
+                        answer = str(self.match[0])
+        
+                    else:
+                        idx = num_matches-1
+                        self.printMatch( matches, idx )
+                        answer = str(idx)
                 else:
                     answer = 'i'
             if self.use_gps:
@@ -466,6 +477,9 @@ def main(argv=None):
                         help="Use the gps location to name the destination dir. "
                         "See https://wiki.openstreetmap.org/wiki/Nominatim#Example "
                         "under addressparts for arguments for GPS.")
+    parser.add_argument("--match", nargs=1, dest='match', type=int,
+                        help="Pick match MATCH when finding matches at destination instead of prompting user."
+                        "If MATCH is greater than number of matches it will pick the last one.")
     result = parser.parse_args()
     pm = PicMover( result.path, 
                    result.gps,
@@ -473,7 +487,8 @@ def main(argv=None):
                    dry_run = result.dry_run,
                    move = result.move,
                    date_only = result.date_only,
-                   ignore_all = result.ignore_all )
+                   ignore_all = result.ignore_all,
+                   match=result.match)
     pm.exe()
     return 0
     
