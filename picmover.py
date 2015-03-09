@@ -52,43 +52,61 @@ def getMetadata( metadata, key ):
     if key in metadata:
         return metadata[key]
     else:
-        print("[Error] Exif data {0} doesn't exist! Returning \"Unknown\".")
+        print("[Error] Exif data {0} doesn't exist in img! Returning \"Unknown\".".format(key))
         return "Unknown"
 
 class ExifImg:
     """Extract metadata from images"""
     def model( self, metadata ):
-        return getMetadata( Metadata, 'Exif.Image.Model')
+        model = getMetadata( metadata, 'Exif.Image.Model')
+        if 'NIKON' in model:
+            model = model.split()
+            model = model[1]
+        return model
     def make( self, metadata ):
-        return getMetadata( metadata, 'Exif.Image.Make')
+        make = getMetadata( metadata, 'Exif.Image.Make')
+        if 'NIKON' in make:
+            # Choose first ( remove corporation from nikon)
+            make = make.split()[0]
+        return make
+
     def date( self, metadata ):
-        date = str(datetime.datetime.today())
         if 'Exif.Image.DateTimeOriginal' in metadata:
             date = metadata['Exif.Image.DateTimeOriginal'].split()[0]
         elif 'Exif.Photo.DateTimeOriginal' in metadata:
             date = metadata['Exif.Photo.DateTimeOriginal'].split()[0]
         else:
             print( "[Warning] Couldn't find date! Using today's date instead." )
+            date = str(datetime.datetime.today()).split()[0]
         return date
         
 class ExifMov:
     """Extract metadata from mov files"""
+    def __init__(self):
+        self.apple_re = re.compile("Apple[0-9+.]+")
     def model( self, metadata ):
         return getMetadata( metadata, 'Xmp.video.Model')
     def make( self, metadata ):
-        return getMetadata( metadata, 'Xmp.video.Make')
+        make = getMetadata( metadata, 'Xmp.video.Make')
+        # For iphone 4, apple appends some sort of id after the make
+        # so just remove that.
+        if re.match(self.apple_re, make ):
+            make = 'Apple'
+        return make
     def date( self, metadata ):
-        date = str(datetime.datetime.today())
         if 'Xmp.video.DateTimeOriginal' in metadata:
             date = metadata['Xmp.video.DateTimeOriginal'].split()[0]
+        elif 'Xmp.video.CreateDate' in metadata:
+            date = metadata['Xmp.video.CreateDate'].split('T')[0]
         else:
             print( "[Warning] Couldn't find date! Using today's date instead." )
+            date = str(datetime.datetime.today()).split()[0]
         return date
     
 class PicMover:
  
     # python constructor
-    def __init__(self, path, dry_run = False, move = False, verbose = False):
+    def __init__(self, path, dry_run = False, move = False, verbose = False, date_only = False, ignore_all = False):
         # Convert ~/ to relative path if needed.
         expanded_path = os.path.expanduser( path )
         # Init variables
@@ -149,7 +167,8 @@ class PicMover:
         self.subdir_raw = 'raw/'
         self.subdir_jpg = 'JPEG/'
         self.subdir_mov = 'mov/'
-        
+        self.date_only = date_only
+        self.ignore_all = ignore_all
         self.dry_run = dry_run
         self.move = move
         self.writepath = {}
@@ -203,43 +222,47 @@ class PicMover:
     def add_path(self, metadata, exif, data ):
         # Get camera maker
         maker = exif.make( metadata )
-        # Choose first ( remove corporation from nikon)
-        maker = maker.split()[0]
         # Get camera model
         camera = exif.model( metadata )
-        if 'NIKON' in camera:
-            camera = camera.split()
-            camera = camera[1]
         path = '/{0}/{1}/{2}/'.format(maker.capitalize(), camera, data.date[0:4])
         key = data.date
         path_to_events = data.target_path + path
         matches = glob.glob(path_to_events + key + '*')
         print( maker, camera )
-     
-        answer = 'n'
         # Found potential matching events 
-
+        answer = 'n'
+        num_matches = len(matches)
         while( True ):
-            if len(matches):
-                print( "Found events matching the date. Use one of these instead?" )
+            if num_matches:
+                if not self.ignore_all:
+                    print( "Found events matching the date. Use one of these instead?" )
 
-                for i,m in enumerate(matches):
-                    print( "- [{0}] add to: {1}"
-                           .format(i, self.stripPath( path_to_events, m, 0 )))
-                answer = input("- [n] to create a new.\n"
-                               "- [i] to ignore this event.\n"
-                               "- Type one of the options above: ")
+                    for i,m in enumerate(matches):
+                        print( "- [{0}] add to: {1}"
+                               .format(i, self.stripPath( path_to_events, m, 0 )))
+                    answer = input("- [n] to create a new.\n"
+                                   "- [i] to ignore this event.\n"
+                                   "- Type one of the options above: ")
+                else:
+                    answer = 'i'
 
             if answer.isdigit() and int(answer) < len(matches) :
                 event = self.stripPath( path_to_events, matches[int(answer)], 0 )
                 self.writepath[ key ] = '{0}{1}/'.format( path, event )
                 break
             elif answer == "n":
-                # Ask for name 
-                name = input('[{0}] Name of event ( {1} <name> ): '
-                             .format(data.filetype, data.date))
-                # Add date + name
-                path += '{0} {1}/'.format(data.date, name)
+                name = ''
+                # Ask for input if date_only isn't set or if it founds some matches.
+                if not self.date_only or num_matches:
+                    # Ask for name 
+                    name = input('[{0}] Name of event ( {1} <name> ): '
+                                 .format(data.filetype, data.date))
+                if len( name ):
+                    # Add date + name
+                    path += '{0} {1}/'.format(data.date, name)
+                else:
+                    path += '{0}/'.format(data.date)
+
                 # Add path to dict
                 self.writepath[ key ] = path
                 break
@@ -367,10 +390,12 @@ def main(argv=None):
                         help="Moves the target images, not just copying them to the target position")
     parser.add_argument("-n", action="store_true", default=False, dest='dry_run',
                         help="Dry run, execute all actions but doesn't move any files. Good for testing.")
-    ### parser.add_argument("--camera-model", default='D7000', dest='camera_model',
-    ###                     help="Set camera model incase no model can be found in metadata.")
-    ### parser.add_argument("--camera-maker", default='Nikon', dest='camera_maker',
-    ###                     help="Set camera manufacture incase no manufactor can be found in metadata.")
+    parser.add_argument("-d","--date-only", action="store_true", default=False, dest='date_only',
+                        help="Date only, will just use the date as the destination directory. "
+                        "Will only prompt for input if it finds a directory with the same date "
+                        "in the destination dir.")
+    parser.add_argument("-i","--ignore", action="store_true",default=False, dest='ignore_all',
+                        help="Will ignore all files where a directory with the same date exist in the destination directory.")
     parser.add_argument("-c", default='~/.picmoverrc', dest='path',
                         help="Config file to load.")
 
@@ -378,7 +403,9 @@ def main(argv=None):
     pm = PicMover( result.path, 
                    verbose = result.verbose, 
                    dry_run = result.dry_run,
-                   move = result.move )
+                   move = result.move,
+                   date_only = result.date_only,
+                   ignore_all = result.ignore_all )
     # pm.verbose      = result.verbose
     # pm.move         = result.move
     # pm.dry_run      = result.dry_run
