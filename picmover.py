@@ -198,7 +198,6 @@ class PicMover:
         self.mov_keys = {}
         self.img_keys = {}
         self.verbose = verbose
-        self.ignore_always = ignore 
         raw_ext = '(3fr|ari|arw|bay|crw|cr2|cap|dcs|dcr|'\
                   'dng|drf|eip|erf|fff|iiq|k25|kdc|mdc|mef|'\
                   'mos|mrw|nef|nrw|obm|orf|pef|ptx|pxn|r3d|'\
@@ -234,8 +233,8 @@ class PicMover:
             xml = self.gpsQuery( coordinates )
             if xml is not None:
                 
-                # if self.verbose:
-                #     print("Address from GPS: {0}".format(xml[0].text) )
+                if self.verbose:
+                    print("Address from GPS: {0}".format(xml[0].text) )
                 for opt in self.gps_option:
                     if opt == 'full':
                         name = xml[0].text
