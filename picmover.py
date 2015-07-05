@@ -59,20 +59,47 @@ def getMetadata( metadata, key ):
         print("[Error] Exif data {0} doesn't exist in img! Returning \"Unknown\".".format(key))
         return "Unknown"
 
+class FilterMake:
+    def __init__(self):
+        self.apple_re = re.compile("Apple[0-9+-.]+")
+        self.nikon_re = re.compile("Nikon", re.IGNORECASE)
+    def __call__( self, make ):
+        # For iphone 4, apple appends some sort of id after the make
+        # so just remove that.
+        if re.search(self.apple_re, make ):
+            make = 'Apple'
+        elif re.search(self.nikon_re, make):
+            # Choose first ( remove corporation from nikon)
+            make = 'Nikon'
+        return make
+
+class FilterModel:
+    def __init__(self):
+        self.iphone_re = re.compile("iPhone ([0-9s]+)-[0-9+-.]+")
+        self.nikon_re = re.compile("NIKON (D[0-9]+)", re.IGNORECASE)
+
+    def __call__( self, model ):
+        # For iphone 4, apple appends some sort of id after the model
+        # so just remove that.
+        match =  re.search(self.iphone_re, model )
+        if match:
+            return 'iPhone {0}'.format(match.group(1))
+
+        match = re.search( self.nikon_re, model )
+        if match:
+            return match.group(1)
+        return model
+    
 class ExifImg:
     """Extract metadata from images"""
+    def __init__(self):
+        self.filter_model = FilterModel()
+        self.filter_make = FilterMake()
+
     def model( self, metadata ):
-        model = getMetadata( metadata, 'Exif.Image.Model')
-        if 'NIKON' in model:
-            model = model.split()
-            model = model[1]
-        return model
+        return self.filter_model( getMetadata( metadata, 'Exif.Image.Model') )
     def make( self, metadata ):
-        make = getMetadata( metadata, 'Exif.Image.Make')
-        if 'NIKON' in make:
-            # Choose first ( remove corporation from nikon)
-            make = make.split()[0]
-        return make
+        return self.filter_make( getMetadata( metadata, 'Exif.Image.Make') )
 
     def date( self, metadata ):
         if 'Exif.Image.DateTimeOriginal' in metadata:
@@ -93,26 +120,17 @@ class ExifImg:
 class ExifMov:
     """Extract metadata from mov files"""
     def __init__(self):
-        self.apple_re = re.compile("Apple[0-9+-.]+")
-        self.iphone_re = re.compile("iPhone ([0-9s]+)-[0-9+-.]+")
+        self.filter_model = FilterModel()
+        self.filter_make = FilterMake()
+
         self.gps_re = re.compile("([+-][0-9]+\.[0-9]+)([+-][0-9]+\.[0-9]+)")
         
     def model( self, metadata ):
-        model = getMetadata( metadata, 'Xmp.video.Model')
-        # For iphone 4, apple appends some sort of id after the model
-        # so just remove that.
-        match =  re.match(self.iphone_re, model )
-        if match:
-            model = 'iPhone {0}'.format(match.group(1))
-        return model
+        return self.filter_model( getMetadata( metadata, 'Xmp.video.Model') )
 
     def make( self, metadata ):
-        make = getMetadata( metadata, 'Xmp.video.Make')
-        # For iphone 4, apple appends some sort of id after the make
-        # so just remove that.
-        if re.match(self.apple_re, make ):
-            make = 'Apple'
-        return make
+        return self.filter_make( getMetadata( metadata, 'Xmp.video.Make') )
+
     def date( self, metadata ):
         if 'Xmp.video.DateTimeOriginal' in metadata:
             date = metadata['Xmp.video.DateTimeOriginal'].split()[0]
