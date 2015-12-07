@@ -28,7 +28,7 @@ It's a simple python script so you don't need to compile anything. Just run
 make install DESTDIR=<location>
 ```
 
-where <location> is where you want to install it. The default is /usr.
+Where LOCATION is where you want to install it. The default is /usr.
 Before you run the script make sure you have python-libgexiv2,
 python-gobject and python-gobject2 version 0.10 installed.
 
