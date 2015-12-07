@@ -521,7 +521,7 @@ def main(argv=None):
                         dest='ignore_all',
                         help="Will ignore all files where a directory with the "
                         "same date exist in the destination directory.")
-    parser.add_argument("-c", default='~/.picmoverrc', dest='path',
+    parser.add_argument("-c","--config", default='~/.picmoverrc', dest='path',
                         help="Config file to load.")
     parser.add_argument("-g","--gps", dest="gps",nargs='*',
                         help="Use the gps location to name the destination dir. "
