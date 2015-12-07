@@ -402,7 +402,7 @@ class PicMover:
         date = exif.date( metadata )
         # GExiv2 format the date with : instead of -.
         date=date.replace(":","-")
-        # Create key to filename to acoid parsing metadata twice
+        # Create key to filename to avoid parsing metadata twice
         key =  "{0}{1}{2}".format( make, model, date )
 
         self.img_keys[ filename ] = key
@@ -530,11 +530,11 @@ def main(argv=None):
     parser.add_argument("--model", nargs=1, dest='model', type=str,
                         default='Unknown model',
                         help="Specify the model name to use if it "
-                        "cannot be deduced from the metadata")
+                        "cannot be deduced from the metadata.")
     parser.add_argument("--maker", nargs=1, dest='maker', type=str,
                         default='Unknown maker',
                         help="Specify the maker name to use if it "
-                        "cannot be deduced from the metadata")
+                        "cannot be deduced from the metadata.")
     parser.add_argument("--match", nargs=1, dest='match', type=int,
                         help="Pick match MATCH when finding matches at destination "
                         "instead of prompting user. If MATCH is greater than "
