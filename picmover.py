@@ -24,8 +24,10 @@ import argparse
 import datetime
 import re
 import pdb
+import gi
 try:
     # for extracting metadata from jpeg and raw image files
+    gi.require_version('GExiv2','0.10')
     from gi.repository import GExiv2
 except ImportError:
     exit('You need to install gexiv2 first.')
@@ -52,12 +54,13 @@ def yesNo( x ):
         return True
     else:
         return False
-def getMetadata( metadata, key ):
+def getMetadata( metadata, key, default='Unknown' ):
     if key in metadata:
         return metadata[key]
     else:
-        print("[Error] Exif data {0} doesn't exist in img! Returning \"Unknown\".".format(key))
-        return "Unknown"
+        print("[Error] Exif data {0} doesn't exist in img! "
+              "Returning \"{1}\".".format(key,default))
+        return default
 
 class FilterMake:
     def __init__(self):
@@ -92,15 +95,18 @@ class FilterModel:
     
 class ExifImg:
     """Extract metadata from images"""
-    def __init__(self):
+    def __init__(self, default_make, default_model):
+        self.default_make = default_make
+        self.default_model = default_model
         self.filter_model = FilterModel()
         self.filter_make = FilterMake()
 
     def model( self, metadata ):
-        return self.filter_model( getMetadata( metadata, 'Exif.Image.Model') )
+        return self.filter_model( getMetadata( metadata, 'Exif.Image.Model',
+                                               self.default_model ) )
     def make( self, metadata ):
-        return self.filter_make( getMetadata( metadata, 'Exif.Image.Make') )
-
+        return self.filter_make( getMetadata( metadata, 'Exif.Image.Make',
+                                              self.default_make ) )
     def date( self, metadata ):
         if 'Exif.Image.DateTimeOriginal' in metadata:
             date = metadata['Exif.Image.DateTimeOriginal'].split()[0]
@@ -119,17 +125,21 @@ class ExifImg:
 
 class ExifMov:
     """Extract metadata from mov files"""
-    def __init__(self):
+    def __init__(self, default_make, default_model):
+        self.default_make = default_make
+        self.default_model = default_model
         self.filter_model = FilterModel()
         self.filter_make = FilterMake()
 
         self.gps_re = re.compile("([+-][0-9]+\.[0-9]+)([+-][0-9]+\.[0-9]+)")
         
     def model( self, metadata ):
-        return self.filter_model( getMetadata( metadata, 'Xmp.video.Model') )
+        return self.filter_model( getMetadata( metadata, 'Xmp.video.Model',
+                                               self.default_model) )
 
     def make( self, metadata ):
-        return self.filter_make( getMetadata( metadata, 'Xmp.video.Make') )
+        return self.filter_make( getMetadata( metadata, 'Xmp.video.Make',
+                                              self.default_make ) )
 
     def date( self, metadata ):
         if 'Xmp.video.DateTimeOriginal' in metadata:
@@ -155,7 +165,8 @@ class PicMover:
     # python constructor
 
     def __init__(self, path, gps_option, dry_run = False, move = False, 
-                 verbose = False, date_only = False, ignore_all = False, match=None ):
+                 verbose = False, date_only = False, ignore_all = False, match=None,
+                 camera_maker = "Unknown maker", camera_model="Unknown model"):
         # Convert ~/ to relative path if needed.
         expanded_path = os.path.expanduser( path )
         # Init variables
@@ -163,8 +174,12 @@ class PicMover:
         video_path = "Video"
         root = os.path.expanduser( "~" )
         check_if_mounted = False
-        self.camera_maker = "Unknown maker" 
-        self.camera_model = "Unknown model" 
+        self.camera_maker = camera_maker
+        self.camera_model = camera_model
+
+        is_camera_maker_unset = camera_maker == "Unknown maker"
+        is_camera_model_unset = camera_model == "Unknown model"
+        
         self.IMAGE_POOL_PATH = os.getcwd()
         # Read settings
         f = open( expanded_path, "r")
@@ -173,14 +188,10 @@ class PicMover:
             # Check if data has no entries
             if len(data) == 0:
                 continue
-            if data[0] == "CameraMaker":
+            if data[0] == "CameraMaker" and is_camera_maker_unset:
                 self.camera_maker = data[1]
-                if verbose:
-                    print( "Camera Maker is",data[1] )
-            elif data[0] == "CameraModel":
+            elif data[0] == "CameraModel" and is_camera_model_unset:
                 self.camera_model = data[1]
-                if verbose:
-                    print( "Camera Model is",data[1] )
             elif data[0] == "Root":
                 root = data[1]
                 if verbose:
@@ -203,6 +214,10 @@ class PicMover:
                 check_if_mounted = yesNo( data[1] )
                 if verbose:
                     print( "Check if root is mounted:",check_if_mounted )
+        if verbose:
+            print( "Default camera maker is",self.camera_maker )
+            print( "Default camera model is",self.camera_model )
+
         #if check_if_mounted and not os.path.ismount( root ):
         if check_if_mounted and not os.path.ismount( root ):
             raise RuntimeError("[Error] Root path is not mounted! Abort!")
@@ -251,7 +266,8 @@ class PicMover:
             
     # Returns an xml tree of the search
     def gpsQuery( self, coords ):
-         html = urlopen("http://nominatim.openstreetmap.org/reverse?format=xml&lat={0}&lon={1}".format( coords[0], coords[1]))
+         html = urlopen("http://nominatim.openstreetmap.org/reverse?"
+                        "format=xml&lat={0}&lon={1}".format( coords[0], coords[1]))
          return ET.fromstring( html.read() )
              
     def getGPSName(self, exif, metadata ):
@@ -263,6 +279,9 @@ class PicMover:
                 
                 if self.verbose:
                     print("Address from GPS: {0}".format(xml[0].text) )
+                if len(xml) == 1:
+                    print("[Error] {0}".format(xml[0]))
+                    return 'Unknown location'
                 for opt in self.gps_option:
                     if opt == 'full':
                         name = xml[0].text
@@ -304,7 +323,8 @@ class PicMover:
     def printMatch(self, matches, idx ):
         print("Found events using match {0}: {1}".format(idx, matches[idx]))
     def add_path(self, metadata, exif, data ):
-        path = '/{0}/{1}/{2}/'.format( data.make.capitalize(), data.model, data.date[0:4])
+        path = '/{0}/{1}/{2}/'.format( data.make.capitalize(), 
+                                       data.model, data.date[0:4])
         path_to_events = data.target_path + path
 
         matches = glob.glob(path_to_events + data.date + '*')
@@ -316,7 +336,8 @@ class PicMover:
             if num_matches:
                 if not self.ignore_all:
                     if self.match is None:
-                        print( "Found events matching the date. Use one of these instead?" )
+                        print( "Found events matching the date. "
+                               "Use one of these instead?" )
                         for i,m in enumerate(matches):
                             print( "- [{0}] add to: {1}"
                                    .format(i, self.stripPath( path_to_events, m, 0 )))
@@ -338,7 +359,8 @@ class PicMover:
 
                 # Empty string means that it didn't have any valid gps info
                 if len(name):
-                    self.writepath[data.key] = '{0}{1} {2}/'.format( path, data.date, name )
+                    self.writepath[data.key] = '{0}{1} {2}/'.format( path, data.date,
+                                                                     name )
                     break
             
             if answer.isdigit() and int(answer) < len(matches) :
@@ -407,10 +429,6 @@ class PicMover:
     # moves the file based on metadata (user comment and date)
     def exe(self):
 
-        # filenames = [f for f in os.listdir(self.IMAGE_POOL_PATH) if re.search(self.pattern_raw, f) or\
-        #              re.search(self.pattern_jpg, f) or\
-        #              re.search(self.pattern_mov, f)]
-#        pdb.set_trace()
         # Scan for paths
         if self.verbose:
             print( "[------------- Scaning for files ---------------]" )
@@ -433,8 +451,8 @@ class PicMover:
 
         if self.verbose:
             print( "[-------------- Preping files ------------------]" )
-        exif_img = ExifImg()
-        exif_mov = ExifMov()
+        exif_img = ExifImg( self.camera_maker, self.camera_model )
+        exif_mov = ExifMov( self.camera_maker, self.camera_model )
 
         for filename in filenames_raw:
             self.add_file(filename, exif_img, 'RAW', self.TARGET_IMAGE_PATH )
@@ -488,24 +506,39 @@ def main(argv=None):
     parser.add_argument("-v", action="store_true", default=False, dest='verbose',
                         help="More text, i.e. verbose")
     parser.add_argument("-m","--mv", action="store_true", default=False, dest='move',
-                        help="Moves the target images, not just copying them to the target position")
+                        help="Moves the target images, "
+                        "not just copying them to the target position")
     parser.add_argument("-n", action="store_true", default=False, dest='dry_run',
-                        help="Dry run, execute all actions but doesn't move any files. Good for testing.")
-    parser.add_argument("-d","--date-only", action="store_true", default=False, dest='date_only',
-                        help="Date only, will just use the date as the destination directory. "
-                        "Will only prompt for input if it finds a directory with the same date "
-                        "in the destination dir.")
-    parser.add_argument("-i","--ignore", action="store_true",default=False, dest='ignore_all',
-                        help="Will ignore all files where a directory with the same date exist in the destination directory.")
+                        help="Dry run, execute all actions but doesn't move "
+                        "any files. Good for testing.")
+    parser.add_argument("-d","--date-only", action="store_true", default=False,
+                        dest='date_only',
+                        help="Date only, will just use the date as the "
+                        "destination directory. Will only prompt for input if "
+                        "it finds a directory with the same date in the "
+                        "destination dir.")
+    parser.add_argument("-i","--ignore", action="store_true",default=False,
+                        dest='ignore_all',
+                        help="Will ignore all files where a directory with the "
+                        "same date exist in the destination directory.")
     parser.add_argument("-c", default='~/.picmoverrc', dest='path',
                         help="Config file to load.")
     parser.add_argument("-g","--gps", dest="gps",nargs='*',
                         help="Use the gps location to name the destination dir. "
                         "See https://wiki.openstreetmap.org/wiki/Nominatim#Example "
                         "under addressparts for arguments for GPS.")
+    parser.add_argument("--model", nargs=1, dest='model', type=str,
+                        default='Unknown model',
+                        help="Specify the model name to use if it "
+                        "cannot be deduced from the metadata")
+    parser.add_argument("--maker", nargs=1, dest='maker', type=str,
+                        default='Unknown maker',
+                        help="Specify the maker name to use if it "
+                        "cannot be deduced from the metadata")
     parser.add_argument("--match", nargs=1, dest='match', type=int,
-                        help="Pick match MATCH when finding matches at destination instead of prompting user."
-                        "If MATCH is greater than number of matches it will pick the last one.")
+                        help="Pick match MATCH when finding matches at destination "
+                        "instead of prompting user. If MATCH is greater than "
+                        "number of matches it will pick the last one.")
     result = parser.parse_args()
     pm = PicMover( result.path, 
                    result.gps,
@@ -514,7 +547,9 @@ def main(argv=None):
                    move = result.move,
                    date_only = result.date_only,
                    ignore_all = result.ignore_all,
-                   match=result.match)
+                   match=result.match,
+                   camera_model=result.model[0],
+                   camera_maker=result.maker[0] )
     pm.exe()
     return 0
     
