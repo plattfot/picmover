@@ -117,6 +117,8 @@ Check if the *Root* is mounted before proceeding. Useful if the root
 on a external/network attached drive. Will abort if the root isn't
 mounted.
 
+For example on a config file see the manpages for picmover.
+
 ## Limitiations
 
 ### Tested cameras
