@@ -19,7 +19,9 @@ python.
 - [Limitations](#limitations)
   - [Tested cameras](#tested-cameras)
   - [OS support](#os-support)
+  
 ## Installation
+
 ### From source
 It's a simple python script so you don't need to compile anything. Just run
 ```bash
@@ -116,10 +118,12 @@ on a external/network attached drive. Will abort if the root isn't
 mounted.
 
 ## Limitiations
+
 ### Tested cameras
 - Nikon D750, D7000
 - Nokia 6700
 - Apple iPhone 4
+
 ### OS support
 It's only tested on arch linux.
 
