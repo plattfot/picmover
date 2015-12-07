@@ -5,17 +5,23 @@
 ."cp picmover.5.gz /usr/man/man5"
 ."makewhatis"
 ."whatis foo"
-.TH picmover 1 "2014-07-13" "version 0.1.0" 
+.TH picmover 1 "2015-12-06" "version 1.0.0" 
 
 .SH NAME
-picmover - Move images and video from a source to a destination sorting them using metadata.
+picmover - Move images and video from a source to a destination
+sorting them using metadata.
 .SH SYNOPSIS
 picmover [-h] [-v] [-mv] [-n] [-c CONFIG]
 .SH DESCRIPTION
 .B picmover 
-moves images and videos taken by a camera from the directory it was called to the source, default is the users home dir. It will separate the images and videos into two directories, defaults are 
+moves images and videos taken by a camera from the directory it was
+called to the source, default is the users home dir. It will separate
+the images and videos into two directories, defaults are
 .IR Image " and " Video.
-From there it will use the metadata to place the media. The metadata it will use are the manufacture of the camera, camera model, time when the file was taken. If it cannot find any of the metadata it will use the defaults:
+From there it will use the metadata to place the media. The metadata
+it will use are the manufacture of the camera, camera model, time when
+the file was taken. If it cannot find any of the metadata it will use
+the defaults:
 .IR "Unknown maker" " for manufacture, " "Unknown model" " for camera model and the date when it was called for the date." 
 
 .SH OPTIONS
@@ -27,15 +33,35 @@ More text, i.e. verbose
 Moves the target images, not just copying them to the target position.
 .IP -n 
 Dry run, print all actions but doesn't move any files. Good for testing.
+.IP "-d, --date-only"
+Date only, will just use the date as the destination directory. Will
+only prompt for input if it finds a directory with the same date in
+the destination dir.
+.IP "-i, --ignore"
+Will ignore all files where a directory with the same date exist in
+the destination directory.
 .IP "-c config"
 Override the user config file and use CONFIG instead.
+.IP "-g, --gps [GPS [GPS ..]]"
+Use the gps location to name the destination dir. See
+https://wiki.openstreetmap.org/wiki/Nominatim#Example under
+addressparts for arguments for GPS.
+.IP "--model MODEL"
+Specify the model name to use if it cannot be deduced from the metadata.
+.IP "--maker MAKER"
+Specify the maker name to use if it cannot be deduced from the metadata.
+.IP "--match MATCH"
+Pick match MATCH when finding matches at destination instead of
+prompting user. If MATCH is greater than number of matches it will
+pick the last one.
 .SH FILES
 .IP ~/.picmoverrc
 Per user configuration file. See
 .B picmover
 (5) fpr further details.
 .SH BUGS
-It has only been tested with a Nikon D7000 and a Nokia 6700. It only supports nef, jpeg and mov files.
+It has only been tested with a Nikon D7000 and a Nokia 6700. It only
+supports nef, jpeg and mov files.
 .SH AUTHOR
 .RI "Fredrik Salomonsson <" plattfot@gmail.com ">"
 .SH SEE ALSO
