@@ -25,10 +25,10 @@ python.
 ### From source
 It's a simple python script so you don't need to compile anything. Just run
 ```bash
-make install DESTDIR=<location>
+make install DESTDIR=[location]
 ```
 
-Where LOCATION is where you want to install it. The default is /usr.
+Where *location* is where you want to install it. The default is /usr.
 Before you run the script make sure you have python-libgexiv2,
 python-gobject and python-gobject2 version 0.10 installed.
 
@@ -61,10 +61,10 @@ By default picmover will copy the images to the "~/Image" and the
 video files to "~/Video". This can be changed in the config file, see
 the [config file](#config-file) section for more info about that.
 
-The structure for images are "<root>/<image root>/<Camera
-maker>/<model>/<year>/<date> <description>/<ext>" Where ext for jpg is
-"JPEG", for nef, or other raw formats is "raw". This is similar for
-video.
+The structure for images are
+*\[root\]/\[image root\]/\[Camera maker\]/\[model\]/\[year\]/\[date\]
+\[description\]/\[ext\]* Where *ext* for jpg is *JPEG*, for *nef*, or
+other raw formats is *raw*. This is similar for video.
 
 ### GPS
 
