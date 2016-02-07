@@ -61,11 +61,17 @@ def getMetadata( metadata, key, default='Unknown' ):
         print("[Error] Exif data {0} doesn't exist in img! "
               "Returning \"{1}\".".format(key,default))
         return default
-
+# TODO: Add that you can add custom mappings in the config file or
+# similar file instead of editing this all the time. Something like
+# Apple[0-9+-,]+ -> Apple
+# Or maybe xml or something.
+ 
 class FilterMake:
     def __init__(self):
         self.apple_re = re.compile("Apple[0-9+-.]+")
         self.nikon_re = re.compile("Nikon", re.IGNORECASE)
+        self.lg_re = re.compile("LGE")
+        self.asus = re.compile("asus")
     def __call__( self, make ):
         # For iphone 4, apple appends some sort of id after the make
         # so just remove that.
@@ -74,6 +80,10 @@ class FilterMake:
         elif re.search(self.nikon_re, make):
             # Choose first ( remove corporation from nikon)
             make = 'Nikon'
+        elif re.search(self.lg_re, make):
+            make = 'LG'
+        elif re.search(self.asus,make):
+            make = 'Asus'
         return make
 
 class FilterModel:
@@ -243,21 +253,22 @@ class PicMover:
                   'dng|drf|eip|erf|fff|iiq|k25|kdc|mdc|mef|'\
                   'mos|mrw|nef|nrw|obm|orf|pef|ptx|pxn|r3d|'\
                   'raf|raw|rwl|rw2|rwz|sr2|srf|srw|x3f)'
+        mov_ext = '(mov|mp4)'
         self.pattern_raw = re.compile('\.{0}$'.format(raw_ext), re.IGNORECASE)
         self.pattern_jpg = re.compile('\.jpe{0,1}g$', re.IGNORECASE)
-        self.pattern_mov = re.compile('\.mov$', re.IGNORECASE)
+        self.pattern_mov = re.compile('\.{0}$'.format(mov_ext), re.IGNORECASE)
 
-        self.setGPS( gps_option )
+        self.set_gps( gps_option )
         self.match = match
         
     # checks if a directory exists, if not it creates it
-    def ensureDir(self, f):
+    def ensure_dir(self, f):
         d = os.path.dirname(f)
         if not os.path.exists(d):
             os.makedirs(d)
             print( "Created path", f )
 
-    def setGPS(self, gps_option ):
+    def set_gps(self, gps_option ):
         if gps_option is not None:
             self.gps_option = gps_option
             self.use_gps = True
@@ -265,16 +276,16 @@ class PicMover:
             self.use_gps = False
             
     # Returns an xml tree of the search
-    def gpsQuery( self, coords ):
+    def gps_query( self, coords ):
          html = urlopen("http://nominatim.openstreetmap.org/reverse?"
                         "format=xml&lat={0}&lon={1}".format( coords[0], coords[1]))
          return ET.fromstring( html.read() )
              
-    def getGPSName(self, exif, metadata ):
+    def get_gps_name(self, exif, metadata ):
         coordinates = exif.gps(metadata)
         name = ''
         if len(coordinates):
-            xml = self.gpsQuery( coordinates )
+            xml = self.gps_query( coordinates )
             if xml is not None:
                 
                 if self.verbose:
@@ -294,7 +305,7 @@ class PicMover:
 
     # strips the path name and just return the name of the file
     # e.g path/to/file/pic.NEF -> pic.NEF
-    def stripPath(self, path, filename, offset = 1):
+    def strip_path(self, path, filename, offset = 1):
         start = len(path)+offset
         filename = filename[start : ]
         return filename
@@ -309,7 +320,7 @@ class PicMover:
         writepath = writepath + filename
         if self.dry_run != True:
             # check to see if the directory exists, if not create it
-            self.ensureDir(writepath)
+            self.ensure_dir(writepath)
 
             if not os.path.exists(writepath):
                 shutil.copy2(filepath,writepath)
@@ -320,10 +331,10 @@ class PicMover:
             if self.verbose:
                 print( " -Moved to", writepath )
                     
-    def printMatch(self, matches, idx ):
+    def print_match(self, matches, idx ):
         print("Found events using match {0}: {1}".format(idx, matches[idx]))
     def add_path(self, metadata, exif, data ):
-        path = '/{0}/{1}/{2}/'.format( data.make.capitalize(), 
+        path = '/{0}/{1}/{2}/'.format( data.make, 
                                        data.model, data.date[0:4])
         path_to_events = data.target_path + path
 
@@ -340,22 +351,22 @@ class PicMover:
                                "Use one of these instead?" )
                         for i,m in enumerate(matches):
                             print( "- [{0}] add to: {1}"
-                                   .format(i, self.stripPath( path_to_events, m, 0 )))
+                                   .format(i, self.strip_path( path_to_events, m, 0 )))
                         answer = input("- [n] to create a new.\n"
                                        "- [i] to ignore this event.\n"
                                        "- Type one of the options above: ")
                     elif self.match[0] < num_matches:
-                        self.printMatch( matches, self.match[0] )
+                        self.print_match( matches, self.match[0] )
                         answer = str(self.match[0])
         
                     else:
                         idx = num_matches-1
-                        self.printMatch( matches, idx )
+                        self.print_match( matches, idx )
                         answer = str(idx)
                 else:
                     answer = 'i'
             if self.use_gps:
-                name = self.getGPSName(exif, metadata )
+                name = self.get_gps_name(exif, metadata )
 
                 # Empty string means that it didn't have any valid gps info
                 if len(name):
@@ -364,7 +375,7 @@ class PicMover:
                     break
             
             if answer.isdigit() and int(answer) < len(matches) :
-                event = self.stripPath( path_to_events, matches[int(answer)], 0 )
+                event = self.strip_path( path_to_events, matches[int(answer)], 0 )
                 self.writepath[ data.key ] = '{0}{1}/'.format( path, event )
                 break
             elif answer == "n":
