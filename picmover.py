@@ -435,15 +435,20 @@ class PicMover:
         make = exif.make( metadata )
         model = exif.model( metadata )
         date = exif.date( metadata, filename )
-        gps = exif.gps( metadata )
+        
         # GExiv2 format the date with : instead of -.
         date=date.replace(":","-")
+        misc = ""
+
+        if self.use_gps:
+          # If using the gps add the gps coordinates to the key to
+          # avoid clumping pictures taken at different locations.
+          gps = exif.gps( metadata )
+          if gps:
+            misc = "{0}{1}".format( gps[0], gps[1] )
+
         # Create key to filename to avoid parsing metadata twice
-        if gps:
-          key = "{0}{1}{2}{3}{4}".format( make, model, date, gps[0], gps[1] )
-        else :
-          key = "{0}{1}{2}".format( make, model, date )
-    
+        key = "{0}{1}{2}{3}".format( make, model, date, misc )
         self.img_keys[ filename ] = key
         
         if (key not in self.writepath) and (key not in self.ignore):
