@@ -32,6 +32,7 @@ try:
 except ImportError:
     exit('You need to install gexiv2 first.')
 try:
+    gi.require_version('Notify', '0.7')
     from gi.repository import Notify
     HAS_NOTIFY_SUPPORT=True
 except ImportError:
