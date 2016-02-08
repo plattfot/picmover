@@ -29,9 +29,13 @@ try:
     # for extracting metadata from jpeg and raw image files
     gi.require_version('GExiv2','0.10')
     from gi.repository import GExiv2
-    from gi.repository import Notify
 except ImportError:
     exit('You need to install gexiv2 first.')
+try:
+    from gi.repository import Notify
+    HAS_NOTIFY_SUPPORT=True
+except ImportError:
+    HAS_NOTIFY_SUPPORT=False
 # For gps
 from urllib.request import urlopen
 import xml.etree.ElementTree as ET
@@ -473,11 +477,11 @@ class PicMover:
 
     # moves the file based on metadata (user comment and date)
     def exe(self):
-
-        Notify.init("picmover")
-        notify = Notify.Notification.new("picmover","Copying files from {0}"
-                                         .format(self.IMAGE_POOL_PATH))
-        notify.show()
+        if HAS_NOTIFY_SUPPORT:
+          Notify.init("picmover")
+          notify = Notify.Notification.new("picmover","Copying files from {0}"
+                                           .format(self.IMAGE_POOL_PATH))
+          notify.show()
 
         # Scan for paths
         if self.verbose:
@@ -536,10 +540,10 @@ class PicMover:
             self.process_file(filename, self.subdir_mov, self.TARGET_VIDEO_PATH)
             count += 1
         print( "done" )
-
-        notify = Notify.Notification.new("picmover","Done copying files from {0}"
-                                         .format(self.IMAGE_POOL_PATH))
-        notify.show()
+        if HAS_NOTIFY_SUPPORT:
+          notify = Notify.Notification.new("picmover","Done copying files from {0}"
+                                           .format(self.IMAGE_POOL_PATH))
+          notify.show()
 
 # Based on Guido van Rossu's main function
 class Usage(Exception):
