@@ -102,7 +102,19 @@ class FilterModel:
         if match:
             return match.group(1)
         return model
-    
+def extract_timestamp(filename):
+    regex = re.compile( "_([0-9]{4})([0-9]{2})([0-9]{2})_" )
+    match = re.search(regex,filename)
+    if match:
+        year = int(match.group(1))
+        month = int(match.group(2))
+        day = int(match.group(3))
+        if( (year >= 1990) and 
+            (month > 0 and month <= 12 ) and 
+            (day > 0 and day <= 31)):
+            return "{:4d}:{:2d}:{:2d}".format(year,month,day)
+        
+    return ""
 class ExifImg:
     """Extract metadata from images"""
     def __init__(self, default_make, default_model):
@@ -117,14 +129,21 @@ class ExifImg:
     def make( self, metadata ):
         return self.filter_make( getMetadata( metadata, 'Exif.Image.Make',
                                               self.default_make ) )
-    def date( self, metadata ):
+    def date( self, metadata, filename ):
         if 'Exif.Image.DateTimeOriginal' in metadata:
             date = metadata['Exif.Image.DateTimeOriginal'].split()[0]
         elif 'Exif.Photo.DateTimeOriginal' in metadata:
             date = metadata['Exif.Photo.DateTimeOriginal'].split()[0]
         else:
-            print( "[Warning] Couldn't find date! Using today's date instead." )
-            date = str(datetime.datetime.today()).split()[0]
+            print( "[Warning] Couldn't find date!" )
+            print( "          Checking the filename for timestamp")
+            date = extract_timestamp(filename)
+            if( not date ):
+                print( "          Found no valid timestamp,\n"
+                       "          using today's date instead.")
+                date = '{:%Y:%m:%d}'.format(datetime.datetime.today())
+            else :
+                print( "          Found valid timestamp, using that.")
         return date
     def gps(self, metadata ):
         if 'Exif.GPSInfo.GPSLatitude' in metadata and\
@@ -151,16 +170,22 @@ class ExifMov:
         return self.filter_make( getMetadata( metadata, 'Xmp.video.Make',
                                               self.default_make ) )
 
-    def date( self, metadata ):
+    def date( self, metadata, filename ):
         if 'Xmp.video.DateTimeOriginal' in metadata:
             date = metadata['Xmp.video.DateTimeOriginal'].split()[0]
         elif 'Xmp.video.CreateDate' in metadata:
             date = metadata['Xmp.video.CreateDate'].split('T')[0]
         else:
-            print( "[Warning] Couldn't find date! Using today's date instead." )
-            date = str(datetime.datetime.today()).split()[0]
+            print( "[Warning] Couldn't find date!" )
+            print( "          Checking the filename for timestamp")
+            date = extract_timestamp(filename)
+            if( not date ):
+                print( "          Found no valid timestamp,\n"
+                       "          using today's date instead.")
+                date = '{:%Y:%m:%d}'.format(datetime.datetime.today())
+            else :
+                print( "          Found valid timestamp, using that.")
         return date
-
     def gps(self, metadata ):
         if 'Xmp.video.GPSCoordinates' in metadata:
             coords_raw = metadata['Xmp.video.GPSCoordinates']
@@ -410,7 +435,7 @@ class PicMover:
 
         make = exif.make( metadata )
         model = exif.model( metadata )
-        date = exif.date( metadata )
+        date = exif.date( metadata, filename )
         # GExiv2 format the date with : instead of -.
         date=date.replace(":","-")
         # Create key to filename to avoid parsing metadata twice
