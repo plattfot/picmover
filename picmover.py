@@ -426,7 +426,6 @@ class PicMover:
                 print( 'Unknown option, try again.' )
        
     
-
     def add_file( self, filename, exif, filetype, target_path ):
         # go to the correct folder e.g. ~/Nikon/D7000/2011/
         # Get the metadata from the image
@@ -436,11 +435,15 @@ class PicMover:
         make = exif.make( metadata )
         model = exif.model( metadata )
         date = exif.date( metadata, filename )
+        gps = exif.gps( metadata )
         # GExiv2 format the date with : instead of -.
         date=date.replace(":","-")
         # Create key to filename to avoid parsing metadata twice
-        key =  "{0}{1}{2}".format( make, model, date )
-
+        if gps:
+          key = "{0}{1}{2}{3}{4}".format( make, model, date, gps[0], gps[1] )
+        else :
+          key = "{0}{1}{2}".format( make, model, date )
+    
         self.img_keys[ filename ] = key
         
         if (key not in self.writepath) and (key not in self.ignore):
