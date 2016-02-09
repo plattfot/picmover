@@ -205,7 +205,7 @@ class PicMover:
  
     # python constructor
 
-    def __init__(self, path, gps_option, dry_run = False, move = False, 
+    def __init__(self, path, pool, gps_option, dry_run = False, move = False, 
                  verbose = False, date_only = False, ignore_all = False, match=None,
                  camera_maker = "Unknown maker", camera_model="Unknown model"):
         # Convert ~/ to relative path if needed.
@@ -221,7 +221,7 @@ class PicMover:
         is_camera_maker_unset = camera_maker == "Unknown maker"
         is_camera_model_unset = camera_model == "Unknown model"
         
-        self.IMAGE_POOL_PATH = os.getcwd()
+        self.IMAGE_POOL_PATH = pool
         # Read settings
         f = open( expanded_path, "r")
         for line in f:
@@ -435,7 +435,7 @@ class PicMover:
     def add_file( self, filename, exif, filetype, target_path ):
         # go to the correct folder e.g. ~/Nikon/D7000/2011/
         # Get the metadata from the image
-        metadata = GExiv2.Metadata( filename )
+        metadata = GExiv2.Metadata( "{0}/{1}".format(self.IMAGE_POOL_PATH, filename) )
         # Extract usfull information from the metadata object
 
         make = exif.make( metadata )
@@ -562,6 +562,9 @@ def main(argv=None):
     parser = argparse\
         .ArgumentParser( description = "picmover: Simple program that "
                          "moves images according to metadata")
+    parser.add_argument("-p","--pool", default=os.getcwd(), dest='pool',
+                        help="Source path it will look for files, "
+                        "defaults to the directory it's called from.")
     parser.add_argument("-v", action="store_true", default=False, dest='verbose',
                         help="More text, i.e. verbose")
     parser.add_argument("-m","--mv", action="store_true", default=False, dest='move',
@@ -600,6 +603,7 @@ def main(argv=None):
                         "number of matches it will pick the last one.")
     result = parser.parse_args()
     pm = PicMover( result.path, 
+                   result.pool,
                    result.gps,
                    verbose = result.verbose, 
                    dry_run = result.dry_run,
