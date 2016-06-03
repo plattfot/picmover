@@ -27,13 +27,13 @@ import pdb
 import gi
 try:
     # for extracting metadata from jpeg and raw image files
-    from gi.repository import GExiv2
     gi.require_version('GExiv2','0.10')
+    from gi.repository import GExiv2
 except ImportError:
     exit('You need to install gexiv2 first.')
 try:
-    from gi.repository import Notify
     gi.require_version('Notify', '0.7')
+    from gi.repository import Notify
     HAS_NOTIFY_SUPPORT=True
 except ImportError:
     HAS_NOTIFY_SUPPORT=False
