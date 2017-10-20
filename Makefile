@@ -1,38 +1,73 @@
-DOC_SRC := picmover.1 picmover.5
-DOC := $(patsubst %, doc/%.gz, $(DOC_SRC))
-SOURCE := picmover.py
 DESTDIR ?= /usr
-PREFIX ?= src
+PREFIX ?= pkg
+BUILD ?= build
+
+DOCS = 1 5
+SRCS = main.cpp
+TEST = main.cpp picmover.cpp
+
+CXX = g++
+
+CXXFLAGS = -std=c++17 -Wall
+LDFLAGS = 
+
+ifeq ($(DEBUG),)
+  CXXFLAGS += -O2 -flto
+else
+  CXXFLAGS += -g -DNDEBUG
+endif
 
 .PHONY: all
-all: $(DOC) | $(PREFIX) 
-	@cp $(SOURCE) $(PREFIX)/bin/picmover           && \
-	cp doc/picmover.1.gz $(PREFIX)/share/man/man1/ && \
-	cp doc/picmover.5.gz $(PREFIX)/share/man/man5/ && \
-	chmod 755 $(PREFIX)/bin/picmover               && \
-	echo "Done"
+all: docs exec 
 
-$(PREFIX) $(DESTDIR):
-	@mkdir -p $@/share/man/man1 && \
-	mkdir -p $@/share/man/man5  && \
-	mkdir -p $@/bin
+.PHONY: docs
+docs: $(foreach x,$(DOCS),$(PREFIX)/share/man/man$x/picmover.$x.gz)
 
-# prep for man
-%.gz: %
-	gzip -c $< > $@
-# Copy the files, including the tree structure to the destination. Note that this doesn't work on OS X.
+.PHONY: exec
+exec: $(PREFIX)/bin/picmover
+
 .PHONY: install
-install: $(DOC) | $(DESTDIR)
-	@cd $(PREFIX) && \
-	cp --parents bin/picmover share/man/man1/picmover.1.gz share/man/man5/picmover.5.gz $(DESTDIR)
+install: all | $(DESTDIR)
+	cp -a $(PREFIX)/* $(DESTDIR)/
 
-.PHONY: uninstall
-uninstall: 
-	@rm -fv $(strip $(DESTDIR))/bin/picmover
-	@rm -fv $(strip $(DESTDIR))/share/man/man1/picmover.1.gz
-	@rm -fv $(strip $(DESTDIR))/share/man/man5/picmover.5.gz
+.PHONY: test
+test: $(BUILD)/test/picmover
+	./$<
 
 .PHONY: clean
 clean:
-	rm -rfv $(PREFIX)
-	rm doc/picmover.*.gz
+	rm -rfv $(PREFIX) $(BUILD)
+
+## Executable
+$(PREFIX)/bin/picmover: $(SRCS:%.cpp=$(BUILD)/%.o) | $(PREFIX)/bin; $(link)
+$(BUILD)/%.o: src/%.cpp | $(BUILD); $(compile)
+
+## Test
+$(BUILD)/test/picmover: $(TEST:%.cpp=$(BUILD)/test/%.o) | $(BUILD)/test; $(link)
+$(BUILD)/test/%.o: test/%.cpp | $(BUILD)/test; $(compile)
+
+## Create directories
+$(PREFIX)/% $(BUILD)/%: ; @$(mkdir)
+$(DESTDIR) $(BUILD): ; @$(mkdir)
+
+## Docs generation:
+$(foreach x,$(DOCS),$(eval $(call doc_recipe,$x)))
+
+## Compiling and linking recepies
+define compile =
+$(CXX) $(CXXFLAGS) $(XCXXFLAGS) -c $< -o $@
+endef
+
+define link =
+$(CXX) $(LDFLAGS) $(XLDFLAGS) $< -o $@
+endef
+
+define mkdir =
+mkdir -p $@
+endef
+
+define doc_recipe =
+$$(PREFIX)/share/man/man$1/picmover.$1.gz: doc/picmover.$1 | $(PREFIX)/share/man/man$1
+	gzip -c $$< > $$@
+endef
+
