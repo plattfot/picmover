@@ -25,28 +25,15 @@ else
   CXXFLAGS += -g
 endif
 
-.PHONY: all docs exec install headers test test-create-sandbox clean
+.PHONY: all docs exec install headers test clean
 
 all: exec docs headers
 install: all | $(DESTDIR); cp -a $(PREFIX)/* $(DESTDIR)/
 exec: $(PREFIX)/bin/picmover
 docs: $(foreach x,$(DOCS),$(PREFIX_MAN_DIR)/man$x/picmover.$x.gz)
 headers: $(INCL:%=$(PREFIX_INC_DIR)/%)
-test: $(BUILD)/test/picmover test-create-sandbox ; ./$<
+test: $(BUILD)/test/picmover ; ./$<
 clean: ; rm -rfv $(PREFIX) $(BUILD) $(TEST_SANDBOX)
-
-test-create-sandbox:
-	@mkdir -p $(TEST_SANDBOX)                && \
-	touch $(TEST_SANDBOX)/image.nef          && \
-	touch $(TEST_SANDBOX)/image.raw          && \
-	touch $(TEST_SANDBOX)/file               && \
-	touch $(TEST_SANDBOX)/image0.jpeg        && \
-	touch $(TEST_SANDBOX)/image1.jpeg        && \
-	touch $(TEST_SANDBOX)/readme.txt         && \
-	mkdir -p $(TEST_SANDBOX)/subdir          && \
-	touch $(TEST_SANDBOX)/subdir/image3.jpeg && \
-	touch $(TEST_SANDBOX)/subdir/image3.nef  && \
-	touch $(TEST_SANDBOX)/subdir/readme.txt
 
 ## Executable
 $(PREFIX)/bin/picmover: $(SRCS:%.cpp=$(BUILD)/%.o) | $(PREFIX)/bin; $(link)

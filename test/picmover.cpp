@@ -1,11 +1,28 @@
 #include <catch.hpp>
 #include <picmover/picmover.hpp>
 #include <iostream>
+#include <fstream>
 
 TEST_CASE("IO")
 {
   picmover::fs::path sandbox = PICMOVER_STRINGIFY( PICMOVER_SANDBOX_PATH );
-  auto files = picmover::read( sandbox );
+  REQUIRE( !sandbox.empty() );
+
+  // Setup sandbox
+  if( picmover::fs::exists(sandbox) )
+    picmover::fs::remove_all( sandbox );
+
+  picmover::fs::create_directories( sandbox );
+  std::ofstream(sandbox/"image.nef" );
+  std::ofstream(sandbox/"image.raw");
+  std::ofstream(sandbox/"file");
+  std::ofstream(sandbox/"image0.jpeg");
+  std::ofstream(sandbox/"image1.jpeg");
+  std::ofstream(sandbox/"readme.txt");
+  picmover::fs::create_directory(sandbox/"subdir");
+  std::ofstream(sandbox/"subdir/image3.jpeg");
+  std::ofstream(sandbox/"subdir/image3.nef");
+  std::ofstream(sandbox/"subdir/readme.txt");
 
   picmover::Files expected = {"file",
                               "image.nef",
@@ -13,6 +30,9 @@ TEST_CASE("IO")
                               "image0.jpeg",
                               "image1.jpeg",
                               "readme.txt"};
+
+  auto files = picmover::read( sandbox );
+
   SECTION("Reading files in")
   {
     for( const auto& expect : expected )
@@ -38,6 +58,8 @@ TEST_CASE("IO")
                            return a.filename() == b.filename();
                          }));
   }
+
+  CHECK( picmover::fs::remove_all( sandbox ) > 0 );
 }
 
 TEST_CASE("Filter and grouping")
