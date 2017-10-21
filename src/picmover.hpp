@@ -16,6 +16,7 @@ namespace PICMOVER_VERSION_STR {
   namespace fs = std::experimental::filesystem;
   
   using Files = std::vector<fs::path>;
+  using Corrections = std::vector<std::tuple<std::regex, std::string>>;
 
   struct RegexFilter{
     RegexFilter( std::regex regex ): m_regex(regex){}
@@ -23,6 +24,28 @@ namespace PICMOVER_VERSION_STR {
   private:
     std::regex m_regex;
   };
+
+  class MakerAttribute {
+  public:
+    MakerAttribute( const Corrections& corrections = Corrections(),
+                    const std::string& default_maker = "Unknown" );
+    std::string operator()( const fs::path& file ) const;
+  private:
+    const Corrections& m_corrections;
+    const std::string m_default_maker;
+  };
+  
+  struct ModelAttribute {
+    std::string operator()( const fs::path& file ) const;
+  };
+  
+  struct DateAttribute {
+    std::string operator()( const fs::path& file ) const;
+  };
+
+  /// If str matches any of the regexes in corrections it will replace
+  /// it with the associated string.
+  std::string correct( const std::string& str, const Corrections& corrections );
 
   /// Read in all files at specifed path.
   Files read( const fs::path& path );

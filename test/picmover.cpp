@@ -99,6 +99,18 @@ TEST_CASE("Filter and grouping")
     REQUIRE( nef_files.size() == 1 );
   }
 
+  SECTION("Filter out nef using lambda")
+  {
+    auto nef_files =
+      std::move( picmover::filter
+                 ( files, [regex = std::regex("\\.nef")]( const picmover::fs::path& file )
+      {
+        return std::regex_search( file.string(), regex );
+      }));
+    
+    REQUIRE( nef_files.size() == 1 );
+  }
+
   SECTION("Filter out files with no extension")
   {
     auto ext_files =
@@ -126,3 +138,13 @@ TEST_CASE("Filter and grouping")
   }
 }
 
+TEST_CASE("Attributes")
+{
+  const picmover::fs::path images = PICMOVER_STRINGIFY( PICMOVER_TEST_PATH )"/images";
+  picmover::Corrections corrections = {{std::regex("nikon", std::regex::icase), "Nikon"}};
+  picmover::MakerAttribute make( corrections );
+
+  auto maker = make( images/"DSC_3863.NEF" ); // Nikon D750
+
+  CHECK( maker == "Nikon" );
+}

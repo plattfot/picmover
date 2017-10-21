@@ -23,15 +23,15 @@ else
   CXXFLAGS += -g
 endif
 
-.PHONY: all docs exec install headers test clean
+.PHONY: all docs exec install headers test clean symlink-images
 
 all: exec docs headers
 install: all | $(DESTDIR); cp -a $(PREFIX)/* $(DESTDIR)/
 exec: $(PREFIX)/bin/picmover
 docs: $(foreach x,$(DOCS),$(PREFIX_MAN_DIR)/man$x/picmover.$x.gz)
 headers: $(INCL:%=$(PREFIX_INC_DIR)/%)
-test: $(BUILD)/test/picmover ; ./$<
-clean: ; rm -rfv $(PREFIX) $(BUILD) $(TEST_SANDBOX)
+test: $(BUILD)/test/picmover $(BUILD)/test/images; ./$<
+clean: ; rm -rfv $(PREFIX) $(BUILD)
 
 ## Executable
 $(PREFIX)/bin/picmover: $(SRCS:%.cpp=$(BUILD)/%.o) | $(PREFIX)/bin; $(link)
