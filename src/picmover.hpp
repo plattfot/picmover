@@ -16,7 +16,8 @@ namespace PICMOVER_VERSION_STR {
   namespace fs = std::experimental::filesystem;
   
   using Files = std::vector<fs::path>;
-  using Corrections = std::vector<std::tuple<std::regex, std::string>>;
+  using Correction = std::function<std::optional<std::string>(const std::string&)>;
+  using Corrections = std::vector<Correction>;
 
   struct RegexFilter{
     RegexFilter( std::regex regex ): m_regex(regex){}
