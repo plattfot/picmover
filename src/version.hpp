@@ -4,7 +4,7 @@
 
 // From https://github.com/dreamworksanimation/openvdb/blob/master/openvdb/version.h
 #define PICMOVER_STRINGIFY_(x) #x
-#define PICMOVER_STRINGIFY(x) PICMOVER_STRINGIFY(x)
+#define PICMOVER_STRINGIFY(x) PICMOVER_STRINGIFY_(x)
 #define PICMOVER_CONCAT_(x,y) x ## y
 #define PICMOVER_CONCAT(x,y) PICMOVER_CONCAT_(x,y)
 
