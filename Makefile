@@ -11,6 +11,8 @@ TEST = main.cpp picmover.cpp
 INCL = $(notdir $(wildcard src/*.hpp))
 CXX = g++
 
+TEST_SANDBOX = $(BUILD)/sandbox
+
 CXXFLAGS += -std=gnu++1z
 CXXFLAGS += -Wall
 CXXFLAGS += -I $(PREFIX)/include
@@ -18,20 +20,33 @@ CXXFLAGS += -MMD -MP
 LDFLAGS = -lstdc++fs
 
 ifeq ($(DEBUG),)
-  CXXFLAGS += -O2 -flto
+  CXXFLAGS += -O2 -flto -DNDEBUG
 else
-  CXXFLAGS += -g -DNDEBUG
+  CXXFLAGS += -g
 endif
 
-.PHONY: all docs exec install headers test clean
+.PHONY: all docs exec install headers test test-create-sandbox clean
 
 all: exec docs headers
 install: all | $(DESTDIR); cp -a $(PREFIX)/* $(DESTDIR)/
 exec: $(PREFIX)/bin/picmover
 docs: $(foreach x,$(DOCS),$(PREFIX_MAN_DIR)/man$x/picmover.$x.gz)
 headers: $(INCL:%=$(PREFIX_INC_DIR)/%)
-test: $(BUILD)/test/picmover; ./$<
-clean: ; rm -rfv $(PREFIX) $(BUILD)
+test: $(BUILD)/test/picmover test-create-sandbox ; ./$<
+clean: ; rm -rfv $(PREFIX) $(BUILD) $(TEST_SANDBOX)
+
+test-create-sandbox:
+	@mkdir -p $(TEST_SANDBOX)                && \
+	touch $(TEST_SANDBOX)/image.nef          && \
+	touch $(TEST_SANDBOX)/image.raw          && \
+	touch $(TEST_SANDBOX)/file               && \
+	touch $(TEST_SANDBOX)/image0.jpeg        && \
+	touch $(TEST_SANDBOX)/image1.jpeg        && \
+	touch $(TEST_SANDBOX)/readme.txt         && \
+	mkdir -p $(TEST_SANDBOX)/subdir          && \
+	touch $(TEST_SANDBOX)/subdir/image3.jpeg && \
+	touch $(TEST_SANDBOX)/subdir/image3.nef  && \
+	touch $(TEST_SANDBOX)/subdir/readme.txt
 
 ## Executable
 $(PREFIX)/bin/picmover: $(SRCS:%.cpp=$(BUILD)/%.o) | $(PREFIX)/bin; $(link)
@@ -40,6 +55,8 @@ $(BUILD)/%.o: src/%.cpp | $(BUILD); $(compile)
 ## Test
 # Catch is using broken pragmas
 $(BUILD)/test/picmover: CXXFLAGS += -Wno-unknown-pragmas
+$(BUILD)/test/picmover: CXXFLAGS += -DPICMOVER_SANDBOX_PATH="$(TEST_SANDBOX)"
+
 #TODO: Make picmover a shared library
 $(BUILD)/test/picmover: $(BUILD)/picmover.o
 $(BUILD)/test/picmover: $(TEST:%.cpp=$(BUILD)/test/%.o) | $(BUILD)/test; $(link)
