@@ -142,16 +142,29 @@ TEST_CASE("Attributes")
 {
   const picmover::fs::path images = PICMOVER_STRINGIFY( PICMOVER_TEST_PATH )"/images";
 
-  SECTION("Maker")
+  SECTION("Maker with lambda")
   {
-    picmover::Corrections corrections;
-    corrections.emplace_back( [regex = std::regex("nikon", std::regex::icase)]
-                              ( const std::string& str)
-                              {
-                                using Optional = std::optional<std::string>;
-                                return std::regex_search(str, regex)? Optional("Nikon")
-                                  : Optional();
-                              });
+    picmover::Corrections corrections{
+      [regex = std::regex("nikon", std::regex::icase)]( const std::string& str )
+        {
+          using Optional = std::optional<std::string>;
+          return std::regex_search(str, regex)? Optional("Nikon")
+            : Optional();
+        }
+    };
+    
+    picmover::MakerAttribute make( corrections );
+    
+    auto maker = make( images/"DSC_3863.NEF" ); // Nikon D750
+    
+    CHECK( maker == "Nikon" );
+  }
+
+  SECTION("Maker with Replace")
+  {
+    picmover::Corrections corrections {
+      picmover::Replace( std::regex("nikon", std::regex::icase), "Nikon")
+    };
     
     picmover::MakerAttribute make( corrections );
     

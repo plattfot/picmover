@@ -41,13 +41,11 @@ $(BUILD)/%.o: src/%.cpp | $(BUILD); $(compile)
 # Catch is using broken pragmas
 $(BUILD)/test/picmover: CXXFLAGS += -Wno-unknown-pragmas
 $(BUILD)/test/picmover: CXXFLAGS += -DPICMOVER_TEST_PATH="$(PWD)/$(BUILD)/test"
-$(BUILD)/test/images: $(PWD)/test/images 
-	ln -s $< $@
-
 #TODO: Make picmover a shared library
 $(BUILD)/test/picmover: $(BUILD)/picmover.o
 $(BUILD)/test/picmover: $(TEST:%.cpp=$(BUILD)/test/%.o) | $(BUILD)/test; $(link)
 $(BUILD)/test/%.o: test/%.cpp $(INCL:%=$(PREFIX_INC_DIR)/%) | $(BUILD)/test; $(compile)
+$(BUILD)/test/images: $(PWD)/test/images | $(BUILD)/test; ln -s $< $@
 
 ## Copy headers
 $(INCL:%=$(PREFIX_INC_DIR)/%): $(PREFIX_INC_DIR)/%: src/% | $(PREFIX_INC_DIR) ; cp -a $< $@

@@ -95,5 +95,17 @@ namespace PICMOVER_VERSION_STR {
     return str;
   }
 
+  Replace::Replace( const std::regex& regex,
+                    const std::string& replacement ):
+    m_regex( regex ),
+    m_replacement( replacement )
+  {}
+
+  auto Replace::operator()( const std::string& str ) -> std::optional<std::string>
+  {
+    using Optional = std::optional<std::string>;
+    return std::regex_search(str, m_regex) ? Optional( m_replacement ) : Optional();
+  }
+
 } // namespace vX_Y
 } // namespace picmover...

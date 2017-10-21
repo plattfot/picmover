@@ -52,6 +52,17 @@ namespace PICMOVER_VERSION_STR {
     std::string operator()( const fs::path& file ) const;
   };
 
+  class Replace {
+  public:
+    Replace( const std::regex& regex,
+             const std::string& replacement );
+
+    std::optional<std::string> operator()( const std::string& str );
+  private:
+    const std::regex m_regex;
+    const std::string m_replacement;
+  };
+  
   /// Get metadata from file associated with key, if nothing found
   /// return default_value.
   std::string metadata( const fs::path& file,
