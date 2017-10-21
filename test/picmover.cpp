@@ -1,14 +1,53 @@
 #include <catch.hpp>
 #include <picmover/picmover.hpp>
+#include <iostream>
+
+TEST_CASE("IO")
+{
+  picmover::fs::path sandbox = PICMOVER_STRINGIFY( PICMOVER_SANDBOX_PATH );
+  auto files = picmover::read( sandbox );
+
+  picmover::Files expected = {"file",
+                              "image.nef",
+                              "image.raw",
+                              "image0.jpeg",
+                              "image1.jpeg",
+                              "readme.txt"};
+  SECTION("Reading files in")
+  {
+    for( const auto& expect : expected )
+      {
+        REQUIRE( std::find_if( files.begin(), files.end(),
+                               [&]( const picmover::fs::path& path )
+                               {
+                                 return expect == path.filename();
+                               }) != files.end() );
+      }
+  }
+
+  SECTION("Copy files")
+  {
+    picmover::copy(files, sandbox/"dest");
+
+    auto dest_files = picmover::read( sandbox/"dest" );
+    
+    REQUIRE( std::equal( files.begin(), files.end(), dest_files.begin(),
+                         []( const picmover::fs::path& a, 
+                             const picmover::fs::path& b)
+                         {
+                           return a.filename() == b.filename();
+                         }));
+  }
+}
 
 TEST_CASE("Filter and grouping")
 {
-  picmover::Files files = {"/path/test/image.nef",
-                           "/path/test/image.raw",
-                           "/path/test/file",
-                           "/path/test/image0.jpeg",
-                           "/path/test/image1.jpeg",
-                           "/path/test/readme.txt"};
+  picmover::Files files = {"build/sandbox/image.nef",
+                           "build/sandbox/image.raw",
+                           "build/sandbox/file",
+                           "build/sandbox/image0.jpeg",
+                           "build/sandbox/image1.jpeg",
+                           "build/sandbox/readme.txt"};
 
   SECTION("Filter out nothing")
   {
@@ -54,13 +93,14 @@ TEST_CASE("Filter and grouping")
         return file.has_extension() ? file.extension().string() : "unknown";
       }));
     
-    REQUIRE( exts.size() == 5 );
+    CHECK( exts.size() == 5 );
 
-    REQUIRE( exts["jpeg"].size() == 2 );
-    REQUIRE( exts["nef"].size() == 1 );
-    REQUIRE( exts["txt"].size() == 1 );
-    REQUIRE( exts["raw"].size() == 1 );
-    REQUIRE( exts["unknown"].size() == 1 );
+    CHECK( exts[".jpeg"].size() == 2 );
+    CHECK( exts[".nef"].size() == 1 );
+    CHECK( exts[".txt"].size() == 1 );
+    CHECK( exts[".raw"].size() == 1 );
+    CHECK( exts["unknown"].size() == 1 );
+    CHECK( exts["bob"].size() == 0 );
   }
 }
 

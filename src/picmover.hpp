@@ -24,8 +24,7 @@ namespace PICMOVER_VERSION_STR {
     std::regex m_regex;
   };
 
-  // Read in files from path (default to cwd)
-  /// Read in all files at specifed path
+  /// Read in all files at specifed path.
   Files read( const fs::path& path );
 
   // Filter out based on operator
