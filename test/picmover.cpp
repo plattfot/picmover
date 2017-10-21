@@ -141,10 +141,43 @@ TEST_CASE("Filter and grouping")
 TEST_CASE("Attributes")
 {
   const picmover::fs::path images = PICMOVER_STRINGIFY( PICMOVER_TEST_PATH )"/images";
-  picmover::Corrections corrections = {{std::regex("nikon", std::regex::icase), "Nikon"}};
-  picmover::MakerAttribute make( corrections );
 
-  auto maker = make( images/"DSC_3863.NEF" ); // Nikon D750
+  SECTION("Maker")
+  {
+    picmover::Corrections corrections;
+    corrections.emplace_back( [regex = std::regex("nikon", std::regex::icase)]
+                              ( const std::string& str)
+                              {
+                                using Optional = std::optional<std::string>;
+                                return std::regex_search(str, regex)? Optional("Nikon")
+                                  : Optional();
+                              });
+    
+    picmover::MakerAttribute make( corrections );
+    
+    auto maker = make( images/"DSC_3863.NEF" ); // Nikon D750
+    
+    CHECK( maker == "Nikon" );
+  }
 
-  CHECK( maker == "Nikon" );
+  SECTION("Model")
+  {
+    picmover::Corrections corrections;
+    corrections.emplace_back( [regex = std::regex("nikon (D[0-9]+)", std::regex::icase)]
+                              ( const std::string& str)
+                              {
+                                using Optional = std::optional<std::string>;
+                                std::smatch model;
+
+                                return std::regex_search(str, model, regex)
+                                  ? Optional(model[1])
+                                  : Optional();
+                              });
+    
+    picmover::ModelAttribute model( corrections );
+    
+    auto camera_model = model( images/"DSC_3863.NEF" ); // Nikon D750
+    
+    CHECK( camera_model == "D750" );
+  }
 }

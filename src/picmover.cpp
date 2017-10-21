@@ -42,6 +42,30 @@ namespace PICMOVER_VERSION_STR {
 
   auto MakerAttribute::operator()( const fs::path& file ) const -> std::string
   {
+    return correct( metadata( file,"Exif.Image.Make", m_default_maker), m_corrections );
+  }
+
+  ModelAttribute::ModelAttribute( const Corrections& corrections,
+                                  const std::string& default_model ):
+    m_corrections( corrections ),
+    m_default_model( default_model )
+  {}
+
+  auto ModelAttribute::operator()( const fs::path& file ) const -> std::string
+  {
+    return correct( metadata(file,"Exif.Image.Model", m_default_model), m_corrections );
+  }
+  
+  
+  auto DateAttribute::operator()( const fs::path& file ) const -> std::string
+  {
+    return "";
+  }
+
+  std::string metadata( const fs::path& file,
+                        const std::string& key,
+                        const std::string default_value )
+  {
     Exiv2::Image::AutoPtr image = Exiv2::ImageFactory::open( file.string() );
     //assert( image.get() != 0 );
     image->readMetadata();
@@ -50,31 +74,22 @@ namespace PICMOVER_VERSION_STR {
 
     if( !exif_data.empty() )
       {
-        auto it = exif_data.findKey( Exiv2::ExifKey("Exif.Image.Make") );
+        auto it = exif_data.findKey( Exiv2::ExifKey(key) );
 
         if( it != exif_data.end() )
-          return correct( it->toString(), m_corrections );
+          return it->toString();
       } 
 
-    return m_default_maker;
-  }
-  
-  auto ModelAttribute::operator()( const fs::path& file ) const -> std::string
-  {
-    return "";
-  }
-  
-  auto DateAttribute::operator()( const fs::path& file ) const -> std::string
-  {
-    return "";
+    return default_value;
   }
 
   std::string correct( const std::string& str, const Corrections& corrections )
   {
-    for( const auto& entry : corrections )
+    for( const auto& correction : corrections )
       {
-        if( std::regex_search( str, std::get<0>( entry ) ) )
-          return std::get<1>( entry );
+        auto new_str = correction( str );
+        if( new_str )
+          return *new_str;
       }
 
     return str;

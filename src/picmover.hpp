@@ -9,6 +9,8 @@
 #include <map>
 #include <algorithm>
 #include <type_traits>
+#include <functional>
+#include <optional>
 
 namespace picmover {
 inline
@@ -35,19 +37,30 @@ namespace PICMOVER_VERSION_STR {
     const Corrections& m_corrections;
     const std::string m_default_maker;
   };
-  
-  struct ModelAttribute {
+
+  class ModelAttribute {
+  public:
+    ModelAttribute( const Corrections& corrections = Corrections(),
+                    const std::string& default_model = "Unknown" );
     std::string operator()( const fs::path& file ) const;
+  private:
+    const Corrections& m_corrections;
+    const std::string m_default_model;
   };
   
   struct DateAttribute {
     std::string operator()( const fs::path& file ) const;
   };
 
+  /// Get metadata from file associated with key, if nothing found
+  /// return default_value.
+  std::string metadata( const fs::path& file,
+                        const std::string& key,
+                        const std::string default_value );
+
   /// If str matches any of the regexes in corrections it will replace
   /// it with the associated string.
   std::string correct( const std::string& str, const Corrections& corrections );
-
   /// Read in all files at specifed path.
   Files read( const fs::path& path );
 
