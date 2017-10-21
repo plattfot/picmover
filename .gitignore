@@ -1,2 +1,4 @@
 # ignoring test files
 pkg
+build
+.dir-locals.el
