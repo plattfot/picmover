@@ -11,13 +11,11 @@ TEST = main.cpp picmover.cpp
 INCL = $(notdir $(wildcard src/*.hpp))
 CXX = g++
 
-TEST_SANDBOX = $(BUILD)/sandbox
-
 CXXFLAGS += -std=gnu++1z
 CXXFLAGS += -Wall
 CXXFLAGS += -I $(PREFIX)/include
 CXXFLAGS += -MMD -MP
-LDFLAGS = -lstdc++fs
+LDFLAGS = -lexiv2 -lstdc++fs
 
 ifeq ($(DEBUG),)
   CXXFLAGS += -O2 -flto -DNDEBUG
@@ -42,7 +40,9 @@ $(BUILD)/%.o: src/%.cpp | $(BUILD); $(compile)
 ## Test
 # Catch is using broken pragmas
 $(BUILD)/test/picmover: CXXFLAGS += -Wno-unknown-pragmas
-$(BUILD)/test/picmover: CXXFLAGS += -DPICMOVER_SANDBOX_PATH="$(TEST_SANDBOX)"
+$(BUILD)/test/picmover: CXXFLAGS += -DPICMOVER_TEST_PATH="$(PWD)/$(BUILD)/test"
+$(BUILD)/test/images: $(PWD)/test/images 
+	ln -s $< $@
 
 #TODO: Make picmover a shared library
 $(BUILD)/test/picmover: $(BUILD)/picmover.o

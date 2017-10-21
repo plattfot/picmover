@@ -5,7 +5,7 @@
 
 TEST_CASE("IO")
 {
-  picmover::fs::path sandbox = PICMOVER_STRINGIFY( PICMOVER_SANDBOX_PATH );
+  const picmover::fs::path sandbox = PICMOVER_STRINGIFY( PICMOVER_TEST_PATH )"/sandbox";
   REQUIRE( !sandbox.empty() );
 
   // Setup sandbox
