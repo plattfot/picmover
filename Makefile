@@ -2,14 +2,20 @@ DESTDIR ?= /usr
 PREFIX ?= pkg
 BUILD ?= build
 
+PREFIX_INC_DIR=$(PREFIX)/include/picmover
+PREFIX_MAN_DIR=$(PREFIX)/share/man
+
 DOCS = 1 5
 SRCS = main.cpp
 TEST = main.cpp picmover.cpp
-
+INCL = $(notdir $(wildcard src/*.hpp))
 CXX = g++
 
-CXXFLAGS = -std=c++17 -Wall
-LDFLAGS = 
+CXXFLAGS += -std=gnu++1z
+CXXFLAGS += -Wall
+CXXFLAGS += -I $(PREFIX)/include
+CXXFLAGS += -MMD -MP
+LDFLAGS = -lstdc++fs
 
 ifeq ($(DEBUG),)
   CXXFLAGS += -O2 -flto
@@ -17,41 +23,42 @@ else
   CXXFLAGS += -g -DNDEBUG
 endif
 
-.PHONY: all
-all: docs exec 
+.PHONY: all docs exec install headers test clean
 
-.PHONY: docs
-docs: $(foreach x,$(DOCS),$(PREFIX)/share/man/man$x/picmover.$x.gz)
-
-.PHONY: exec
+all: exec docs headers
+install: all | $(DESTDIR); cp -a $(PREFIX)/* $(DESTDIR)/
 exec: $(PREFIX)/bin/picmover
-
-.PHONY: install
-install: all | $(DESTDIR)
-	cp -a $(PREFIX)/* $(DESTDIR)/
-
-.PHONY: test
-test: $(BUILD)/test/picmover
-	./$<
-
-.PHONY: clean
-clean:
-	rm -rfv $(PREFIX) $(BUILD)
+docs: $(foreach x,$(DOCS),$(PREFIX_MAN_DIR)/man$x/picmover.$x.gz)
+headers: $(INCL:%=$(PREFIX_INC_DIR)/%)
+test: $(BUILD)/test/picmover; ./$<
+clean: ; rm -rfv $(PREFIX) $(BUILD)
 
 ## Executable
 $(PREFIX)/bin/picmover: $(SRCS:%.cpp=$(BUILD)/%.o) | $(PREFIX)/bin; $(link)
 $(BUILD)/%.o: src/%.cpp | $(BUILD); $(compile)
 
 ## Test
+# Catch is using broken pragmas
+$(BUILD)/test/picmover: CXXFLAGS += -Wno-unknown-pragmas
+#TODO: Make picmover a shared library
+$(BUILD)/test/picmover: $(BUILD)/picmover.o
 $(BUILD)/test/picmover: $(TEST:%.cpp=$(BUILD)/test/%.o) | $(BUILD)/test; $(link)
-$(BUILD)/test/%.o: test/%.cpp | $(BUILD)/test; $(compile)
+$(BUILD)/test/%.o: test/%.cpp $(INCL:%=$(PREFIX_INC_DIR)/%) | $(BUILD)/test; $(compile)
+
+## Copy headers
+$(INCL:%=$(PREFIX_INC_DIR)/%): $(PREFIX_INC_DIR)/%: src/% | $(PREFIX_INC_DIR) ; cp -a $< $@
 
 ## Create directories
-$(PREFIX)/% $(BUILD)/%: ; @$(mkdir)
-$(DESTDIR) $(BUILD): ; @$(mkdir)
+$(PREFIX_INC_DIR) $(PREFIX)/bin $(BUILD)/test $(BUILD) $(DESTDIR): ; @$(mkdir)
 
 ## Docs generation:
-$(foreach x,$(DOCS),$(eval $(call doc_recipe,$x)))
+define doc_targets =
+$$(PREFIX_MAN_DIR)/man$1: ; @$$(mkdir)
+$$(PREFIX_MAN_DIR)/man$1/picmover.$1.gz: doc/picmover.$1 | $(PREFIX_MAN_DIR)/man$1
+	gzip -c $$< > $$@
+endef
+
+$(foreach x,$(DOCS),$(eval $(call doc_targets,$x)))
 
 ## Compiling and linking recepies
 define compile =
@@ -59,15 +66,14 @@ $(CXX) $(CXXFLAGS) $(XCXXFLAGS) -c $< -o $@
 endef
 
 define link =
-$(CXX) $(LDFLAGS) $(XLDFLAGS) $< -o $@
+$(CXX) $^ -o $@ $(LDFLAGS) $(XLDFLAGS)
 endef
 
 define mkdir =
 mkdir -p $@
 endef
 
-define doc_recipe =
-$$(PREFIX)/share/man/man$1/picmover.$1.gz: doc/picmover.$1 | $(PREFIX)/share/man/man$1
-	gzip -c $$< > $$@
-endef
+## Dependencies
+-include $(SRCS:%.cpp=$(BUILD)/%.d)
+-include $(TEST:%.cpp=$(BUILD)/test/%.d)
 
