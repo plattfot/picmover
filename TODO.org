@@ -1,0 +1,127 @@
+* TODO Move src/picmover.hpp to src/picmover/
+* TODO Rewrite grouping
+** Sort in place
+   - Should have better cache coherence. 
+   - More complex to implement.
+   - Need to modify the files array.
+   - Nodes are lighter. Just a string, and two indices.
+   - Will involve a lot of sorting
+*** Pseudo code
+    Associate metadata with files
+    #+BEGIN_SRC c++
+      Tree tree( files, N ); // find better name
+
+      struct Node{
+        std::string value; // Nikon, D750, 2017-10-22 etc
+        size_t begin;
+        size_t end;
+        // Create a subset vector that only affects the values between the range.
+        Subset range( Files& ){ return Subset(files, begin, end); }
+      };
+
+      auto metadata = metadata(files);
+      // attribute Contains the MakeAttribute, ModelAttribute,
+      // DateAttribute etc
+      auto& root = tree.root();
+      populateNode(root, attribute.begin(), attribute.end() );
+
+      void populateNode( auto& node, iterator attribute, iterator end )
+      {
+        // Stop when no more attributes 
+        if( attribute != end )
+          {
+            // Only change the subset of the files
+            auto subset = node.range( files );
+
+            auto [nodes, subset] = groupBy(subset, *attribute );
+            
+            if( !nodes.empty() )
+              {
+                node.add(nodes);
+                
+                ++attribute;
+                // populate the children
+                for( auto& child : node.children() )
+                  populateNode( child, attribute, end );
+              }
+            else
+              populateNode( child, ++attribute, end );
+          }
+      }
+
+    #+END_SRC
+*** Layout
+            Tree -> Levels -> Entries -> Entry[key{begin,end}]
+    root:   |                   |            {0,10}                              | Level 0
+	    [0 1 2 3 4 5 6 7 8 9]           /      \                             |
+    make:   | LG  |   Nikon     |  => LG{0,3}       Nikon{3,10}                  | Level 1
+            [0 3 9 1 4 2 5 7 6 8]        |             |                         |
+    model:  | 5x  |    D750     |  => 5x{0,3}       D750{3,10}                   | Level 2
+            [0 3 9 1 4 2 5 7 6 8]        /   \         |                         |
+    tag:    |X  |Y|             |  => X{0,2} Y{2,3}    ----------                | Level 3
+            [3 9 0 1 4 2 5 7 6 8]       |      |      /           \              |
+    date:   |2  |2|0    |1      |  => 2{0,2} 2{2,3} 0{3,6}        1{6,10}        | Level 4
+            [3 9 0 1 7 8 2 5 4 6]       |       |      /   \         |           |
+    name:   | A |B| C |D|   F   |  => A{0,2} B{2,3} C{3,5} D{5,6} F{6,10}        | Level 5
+            [3 9 0 1 8 7 2 5 4 6]       |       |      |     |       /  \        |
+    type:   | J |J| R |R|  R  |M|  => J{0,2} J{2,3} R{3,5} R{5,6} R{6,9} M{9,10  | Level 6
+    [3 9 0 1 8 7 5 4 2 6]                                                        | Data
+** Use indices to files
+   - Potential cleaner code. Do not need to modify files.
+   - Might thrash the cache when multithreading.
+   - Heavier nodes: Each node need a vector to store the indices. More
+     heap allocation.
+*** Pseudo code
+
+    #+BEGIN_SRC c++
+      Tree tree( files, N ); // find better name
+      auto metadata = metadata(files);
+
+      struct Node{
+        std::string value; // Nikon, D750, 2017-10-22 etc
+        std::vector<size_t> indices; // {0,3,7,5}
+      };
+
+      // attribute Contains the MakeAttribute, ModelAttribute,
+      // DateAttribute etc
+      auto& root = tree.root();
+      populateNode(root, attribute.begin(), attribute.end() );
+
+      void populateNode( auto& node, iterator attribute, iterator end )
+      {
+        // Stop when no more attributes 
+        if( attribute != end )
+          {
+            auto nodes = groupBy(node.indices, files, *attribute );
+            
+            if( !nodes.empty() )
+              {
+                node.add(nodes);
+                
+                ++attribute;
+                // populate the children
+                for( auto& child : node.children() )
+                  populateNode( child, attribute, end );
+              }
+            else
+              populateNode( child, ++attribute, end );
+          }
+      }
+
+    #+END_SRC
+*** Layout
+            Tree -> Levels -> Entries -> Entry[key{begin,end}]
+            [0 1 2 3 4 5 6 7 8 9]            {0,10}                          | Level 0 
+    :                                       /      \                         |
+    make:   | LG  |   Nikon     |  => LG{0,3,9}   Nikon{1,4,2,5,7,6,8}       | Level 1
+    :                                      |        |                        |
+    model:  | 5x  |    D750     |  => 5x{0,3,9}   D750{1,4,2,5,7,6,8}        | Level 2
+    :                                     /  \           |                   |
+    tag:    |X  |Y|             |  => X{3,9} Y{0}        |                   | Level 3
+    :                                    |     |        / \                  |
+    date:   |2  |2|0    |1      |  => 2{3,9} 2{0} 0{1,7,8} 1{2,5,4,6}        | Level 4
+    :                                    |     |      / \     \              |
+    name:   | A |B| C |D|   F   |  => A{3,9} B{0} C{1,8} D{7} F{2,5,4,6}     | Level 5
+    :                                    |    |      |    |       /    \     |
+    type:   | J |J| R |R|  R  |M|  => J{3,9} J{0} R{1,8} R{7} R{2,5,4} M{6}  | Level 6
+ 
