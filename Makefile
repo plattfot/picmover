@@ -5,7 +5,7 @@ DESTDIR ?= /usr
 PREFIX ?= src
 
 .PHONY: all
-all: $(DOC) | $(PREFIX) 
+all: $(DOC) | $(PREFIX)
 	@cp $(SOURCE) $(PREFIX)/bin/picmover           && \
 	cp doc/picmover.1.gz $(PREFIX)/share/man/man1/ && \
 	cp doc/picmover.5.gz $(PREFIX)/share/man/man5/ && \
@@ -27,7 +27,7 @@ install: $(DOC) | $(DESTDIR)
 	cp --parents bin/picmover share/man/man1/picmover.1.gz share/man/man5/picmover.5.gz $(DESTDIR)
 
 .PHONY: uninstall
-uninstall: 
+uninstall:
 	@rm -fv $(strip $(DESTDIR))/bin/picmover
 	@rm -fv $(strip $(DESTDIR))/share/man/man1/picmover.1.gz
 	@rm -fv $(strip $(DESTDIR))/share/man/man5/picmover.5.gz
