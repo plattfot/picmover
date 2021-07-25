@@ -12,7 +12,7 @@
 # GNU General Public License for more details.
 
 # You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>. 
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
 import shutil # moving and deleting files
@@ -71,7 +71,7 @@ def getMetadata( metadata, key, default='Unknown' ):
 # similar file instead of editing this all the time. Something like
 # Apple[0-9+-,]+ -> Apple
 # Or maybe xml or something.
- 
+
 class FilterMake:
     def __init__(self):
         self.apple_re = re.compile("Apple[0-9+-.]+")
@@ -115,11 +115,11 @@ def extract_timestamp(filename):
         year = int(match.group(1))
         month = int(match.group(2))
         day = int(match.group(3))
-        if( (year >= 1990) and 
-            (month > 0 and month <= 12 ) and 
+        if( (year >= 1990) and
+            (month > 0 and month <= 12 ) and
             (day > 0 and day <= 31)):
             return "{:4d}:{:2d}:{:2d}".format(year,month,day)
-        
+
     return ""
 class ExifImg:
     """Extract metadata from images"""
@@ -167,7 +167,7 @@ class ExifMov:
         self.filter_make = FilterMake()
 
         self.gps_re = re.compile("([+-][0-9]+\.[0-9]+)([+-][0-9]+\.[0-9]+)")
-        
+
     def model( self, metadata ):
         return self.filter_model( getMetadata( metadata, 'Xmp.video.Model',
                                                self.default_model) )
@@ -200,12 +200,12 @@ class ExifMov:
                 return [match.group(1),match.group(2)]
         else:
             return []
-    
+
 class PicMover:
- 
+
     # python constructor
 
-    def __init__(self, path, pool, gps_option, dry_run = False, move = False, 
+    def __init__(self, path, pool, gps_option, dry_run = False, move = False,
                  verbose = False, date_only = False, ignore_all = False, match=None,
                  camera_maker = "Unknown maker", camera_model="Unknown model"):
         # Convert ~/ to relative path if needed.
@@ -220,7 +220,7 @@ class PicMover:
 
         is_camera_maker_unset = camera_maker == "Unknown maker"
         is_camera_model_unset = camera_model == "Unknown model"
-        
+
         self.IMAGE_POOL_PATH = pool
         # Read settings
         f = open( expanded_path, "r")
@@ -262,12 +262,12 @@ class PicMover:
         #if check_if_mounted and not os.path.ismount( root ):
         if check_if_mounted and not os.path.ismount( root ):
             raise RuntimeError("[Error] Root path is not mounted! Abort!")
-        
+
         # Only add '/' if the *_path doesn't start with '/'
         self.TARGET_IMAGE_PATH = root + ('/' if image_path[0] != '/' else '')\
                                  + image_path
         self.TARGET_VIDEO_PATH = root + ('/' if video_path[0] != '/' else '')\
-                                 + video_path 
+                                 + video_path
         self.subdir_raw = 'raw/'
         self.subdir_jpg = 'JPEG/'
         self.subdir_mov = 'mov/'
@@ -291,7 +291,7 @@ class PicMover:
 
         self.set_gps( gps_option )
         self.match = match
-        
+
     # checks if a directory exists, if not it creates it
     def ensure_dir(self, f):
         d = os.path.dirname(f)
@@ -305,20 +305,20 @@ class PicMover:
             self.use_gps = True
         else:
             self.use_gps = False
-            
+
     # Returns an xml tree of the search
     def gps_query( self, coords ):
          html = urlopen("http://nominatim.openstreetmap.org/reverse?"
                         "format=xml&lat={0}&lon={1}".format( coords[0], coords[1]))
          return ET.fromstring( html.read() )
-             
+
     def get_gps_name(self, exif, metadata ):
         coordinates = exif.gps(metadata)
         name = ''
         if len(coordinates):
             xml = self.gps_query( coordinates )
             if xml is not None:
-                
+
                 if self.verbose:
                     print("Address from GPS: {0}".format(xml[0].text) )
                 if len(xml) == 1:
@@ -331,7 +331,7 @@ class PicMover:
                     elm = xml[1].find( opt )
                     if elm is not None:
                         name += ", {0}".format(elm.text)
-                        
+
         return name[2:]
 
     # strips the path name and just return the name of the file
@@ -341,12 +341,12 @@ class PicMover:
         filename = filename[start : ]
         return filename
 
-    # First check if the path exists, if true; move the file 
-    # Only if the file doesn't exists at that location 
+    # First check if the path exists, if true; move the file
+    # Only if the file doesn't exists at that location
     def move_file(self,filename, writepath ):
 
         # Then move it to the new location
-        # if that succeeded remove the image from the image pool 
+        # if that succeeded remove the image from the image pool
         filepath = self.IMAGE_POOL_PATH+'/'+filename
         writepath = writepath + filename
         if self.dry_run != True:
@@ -361,17 +361,17 @@ class PicMover:
         else:
             if self.verbose:
                 print( " -Moved to", writepath )
-                    
+
     def print_match(self, matches, idx ):
         print("Found events using match {0}: {1}".format(idx, matches[idx]))
     def add_path(self, metadata, exif, data ):
-        path = '/{0}/{1}/{2}/'.format( data.make, 
+        path = '/{0}/{1}/{2}/'.format( data.make,
                                        data.model, data.date[0:4])
         path_to_events = data.target_path + path
 
         matches = glob.glob(path_to_events + data.date + '*')
         print( data.make, data.model )
-        # Found potential matching events 
+        # Found potential matching events
         answer = 'n'
         num_matches = len(matches)
         while( True ):
@@ -389,7 +389,7 @@ class PicMover:
                     elif self.match[0] < num_matches:
                         self.print_match( matches, self.match[0] )
                         answer = str(self.match[0])
-        
+
                     else:
                         idx = num_matches-1
                         self.print_match( matches, idx )
@@ -404,7 +404,7 @@ class PicMover:
                     self.writepath[data.key] = '{0}{1} {2}/'.format( path, data.date,
                                                                      name )
                     break
-            
+
             if answer.isdigit() and int(answer) < len(matches) :
                 event = self.strip_path( path_to_events, matches[int(answer)], 0 )
                 self.writepath[ data.key ] = '{0}{1}/'.format( path, event )
@@ -413,7 +413,7 @@ class PicMover:
                 name = ''
                 # Ask for input if date_only isn't set or if it founds some matches.
                 if not self.date_only or num_matches:
-                    # Ask for name 
+                    # Ask for name
                     name = input('[{0}] Name of event ( {1} <name> ): '
                                  .format(data.filetype, data.date))
                 if len( name ):
@@ -430,8 +430,8 @@ class PicMover:
                 break
             else:
                 print( 'Unknown option, try again.' )
-       
-    
+
+
     def add_file( self, filename, exif, filetype, target_path ):
         # go to the correct folder e.g. ~/Nikon/D7000/2011/
         # Get the metadata from the image
@@ -441,7 +441,7 @@ class PicMover:
         make = exif.make( metadata )
         model = exif.model( metadata )
         date = exif.date( metadata, filename )
-        
+
         # GExiv2 format the date with : instead of -.
         date=date.replace(":","-")
         misc = ""
@@ -456,20 +456,20 @@ class PicMover:
         # Create key to filename to avoid parsing metadata twice
         key = "{0}{1}{2}{3}".format( make, model, date, misc )
         self.img_keys[ filename ] = key
-        
+
         if (key not in self.writepath) and (key not in self.ignore):
             data = FileData( key, date, make, model, filetype, target_path )
             self.add_path( metadata, exif, data )
-            
+
     def process_file(self, filename, subdir, target_path):
-    
+
         key = self.img_keys[filename]
         if self.ignore[ key ]:
             return
 
         path = target_path + self.writepath[ key ] + subdir
         # Move file to the new path
-        self.move_file(filename, path )  
+        self.move_file(filename, path )
 
 
     def print_process(self,type_name, filename, count, total):
@@ -534,7 +534,7 @@ class PicMover:
             self.print_process( type_name, filename, count, total )
             self.process_file(filename, self.subdir_jpg, self.TARGET_IMAGE_PATH )
             count += 1
-            
+
         for filename in filenames_mov:
             type_name = "movie"
             self.print_process( type_name, filename, count, total )
@@ -602,10 +602,10 @@ def main(argv=None):
                         "instead of prompting user. If MATCH is greater than "
                         "number of matches it will pick the last one.")
     result = parser.parse_args()
-    pm = PicMover( result.path, 
+    pm = PicMover( result.path,
                    result.pool,
                    result.gps,
-                   verbose = result.verbose, 
+                   verbose = result.verbose,
                    dry_run = result.dry_run,
                    move = result.move,
                    date_only = result.date_only,
@@ -615,8 +615,6 @@ def main(argv=None):
                    camera_maker=result.maker[0] )
     pm.exe()
     return 0
-    
+
 if __name__ == "__main__":
     sys.exit(main())
-
-    
