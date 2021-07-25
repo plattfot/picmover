@@ -100,7 +100,7 @@ class FilterMake:
 class FilterModel:
     def __init__(self):
         self.iphone_re = re.compile("iPhone ([0-9s]+)-[0-9+-.]+")
-        self.nikon_re = re.compile("NIKON ([DZ][0-9_]+)", re.IGNORECASE)
+        self.nikon_re = re.compile("NIKON (D[0-9]+|Z [0-9_]+)", re.IGNORECASE)
 
     def __call__( self, model ):
         # For iphone 4, apple appends some sort of id after the model
