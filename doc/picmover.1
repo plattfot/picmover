@@ -13,7 +13,7 @@ sorting them using metadata.
 .SH SYNOPSIS
 picmover [-h] [-v] [-mv] [-n] [-c CONFIG]
 .SH DESCRIPTION
-.B picmover 
+.B picmover
 moves images and videos taken by a camera from the directory it was
 called to the source, default is the users home dir. It will separate
 the images and videos into two directories, defaults are
@@ -22,16 +22,16 @@ From there it will use the metadata to place the media. The metadata
 it will use are the manufacture of the camera, camera model, time when
 the file was taken. If it cannot find any of the metadata it will use
 the defaults:
-.IR "Unknown maker" " for manufacture, " "Unknown model" " for camera model and the date when it was called for the date." 
+.IR "Unknown maker" " for manufacture, " "Unknown model" " for camera model and the date when it was called for the date."
 
 .SH OPTIONS
 .IP "-h, --help"
 Show this help message and exit
-.IP -v 
+.IP -v
 More text, i.e. verbose
 .IP "-m, --mv"
 Moves the target images, not just copying them to the target position.
-.IP -n 
+.IP -n
 Dry run, print all actions but doesn't move any files. Good for testing.
 .IP "-d, --date-only"
 Date only, will just use the date as the destination directory. Will
