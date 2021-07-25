@@ -49,11 +49,16 @@ from collections import namedtuple
 ##############################################
 FileData = namedtuple("FileData", "key, date, make, model, filetype, target_path")
 
-__doc__ = """PicMover: \n\tSimple class that extracts metadata from an image
-pool \n\tand moves them to a dir named with date and user comment.  To
-run simply execute PicMover.py where the pictures are.  Flags:
-verbose\t-v Created by: Fredrik "PlaTFooT" Salomonsson
-plattfot@gmail.com.  """
+__doc__ = """PicMover: Simple class that extracts metadata from an
+image pool and moves them to a dir named with date and user comment.
+
+To run simply execute PicMover.py where the pictures are.
+
+Flags:
+  -v, --verbose
+
+Created by: Fredrik "PlaTFooT" Salomonsson
+plattfot@gmail.com. """
 
 def yesNo( x ):
     if x.lower() == 'yes' or x.lower() == 'true':
