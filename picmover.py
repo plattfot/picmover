@@ -65,12 +65,11 @@ def yesNo( x ):
         return True
     else:
         return False
-def getMetadata( metadata, key, default='Unknown' ):
-    if key in metadata:
-        return metadata[key]
-    else:
-        print("[Error] Exif data {0} doesn't exist in img! "
-              "Returning \"{1}\".".format(key,default))
+def getMetadata(metadata, key, default='Unknown'):
+    try:
+        return metadata.try_get_tag_string(key)
+    except gi.repository.GLib.Error:
+        print(f"[Error] Exif data '{key}' doesn't exist in img! Returning '{default}'.")
         return default
 # TODO: Add that you can add custom mappings in the config file or
 # similar file instead of editing this all the time. Something like
@@ -141,15 +140,15 @@ class ExifImg:
         return self.filter_make( getMetadata( metadata, 'Exif.Image.Make',
                                               self.default_make ) )
     def date( self, metadata, filename ):
-        if 'Exif.Image.DateTimeOriginal' in metadata:
-            date = metadata['Exif.Image.DateTimeOriginal'].split()[0]
-        elif 'Exif.Photo.DateTimeOriginal' in metadata:
-            date = metadata['Exif.Photo.DateTimeOriginal'].split()[0]
+        if metadata.has_tag('Exif.Image.DateTimeOriginal'):
+            date = metadata.try_get_tag_string('Exif.Image.DateTimeOriginal').split()[0]
+        elif metadata.has_tag('Exif.Photo.DateTimeOriginal'):
+            date = metadata.try_get_tag_string('Exif.Photo.DateTimeOriginal').split()[0]
         else:
             print( "[Warning] Couldn't find date!" )
             print( "          Checking the filename for timestamp")
             date = extract_timestamp(filename)
-            if( not date ):
+            if not date:
                 print( "          Found no valid timestamp,\n"
                        "          using today's date instead.")
                 date = '{:%Y:%m:%d}'.format(datetime.datetime.today())
@@ -157,8 +156,8 @@ class ExifImg:
                 print( "          Found valid timestamp, using that.")
         return date
     def gps(self, metadata ):
-        if 'Exif.GPSInfo.GPSLatitude' in metadata and\
-           'Exif.GPSInfo.GPSLongitude' in metadata:
+        if metadata.has_tag('Exif.GPSInfo.GPSLatitude') and\
+           metadata.has_tag('Exif.GPSInfo.GPSLongitude'):
             return [metadata.get_gps_latitude(), metadata.get_gps_longitude()]
         else:
             return []
@@ -182,10 +181,10 @@ class ExifMov:
                                               self.default_make ) )
 
     def date( self, metadata, filename ):
-        if 'Xmp.video.DateTimeOriginal' in metadata:
-            date = metadata['Xmp.video.DateTimeOriginal'].split()[0]
-        elif 'Xmp.video.CreateDate' in metadata:
-            date = metadata['Xmp.video.CreateDate'].split('T')[0]
+        if metadata.has_tag('Xmp.video.DateTimeOriginal'):
+            date = metadata.try_get_tag_string('Xmp.video.DateTimeOriginal').split()[0]
+        elif metadata.has_tag('Xmp.video.CreateDate'):
+            date = metadata.try_get_tag_string('Xmp.video.CreateDate').split('T')[0]
         else:
             print( "[Warning] Couldn't find date!" )
             print( "          Checking the filename for timestamp")
@@ -198,8 +197,8 @@ class ExifMov:
                 print( "          Found valid timestamp, using that.")
         return date
     def gps(self, metadata ):
-        if 'Xmp.video.GPSCoordinates' in metadata:
-            coords_raw = metadata['Xmp.video.GPSCoordinates']
+        if metadata.has_tag('Xmp.video.GPSCoordinates'):
+            coords_raw = metadata.try_get_tag_string('Xmp.video.GPSCoordinates')
             match = re.match(self.gps_re, coords_raw)
             if match is not None:
                 return [match.group(1),match.group(2)]
@@ -440,7 +439,10 @@ class PicMover:
     def add_file( self, filename, exif, filetype, target_path ):
         # go to the correct folder e.g. ~/Nikon/D7000/2011/
         # Get the metadata from the image
-        metadata = GExiv2.Metadata( "{0}/{1}".format(self.IMAGE_POOL_PATH, filename) )
+        metadata = GExiv2.Metadata.new()
+        path = "{0}/{1}".format(self.IMAGE_POOL_PATH, filename)
+        if not metadata.open_path(path):
+            raise ValueError(f"Unable to open metadata for {path}")
         # Extract usfull information from the metadata object
 
         make = exif.make( metadata )
