@@ -114,7 +114,7 @@ class FilterModel:
         # so just remove that.
         match = re.search(self.iphone_re, model)
         if match:
-            return 'iPhone {0}'.format(match.group(1))
+            return f'iPhone {match.group(1)}'
 
         match = re.search(self.nikon_re, model)
         if match:
@@ -132,7 +132,7 @@ def extract_timestamp(filename):
         if (year >= 1990) and \
            (month > 0 and month <= 12) and \
            (day > 0 and day <= 31):
-            return "{:4d}:{:2d}:{:2d}".format(year, month, day)
+            return f"{year:4d}:{month:2d}:{day:2d}"
 
     return ""
 
@@ -170,7 +170,7 @@ class ExifImg:
             if not date:
                 print("          Found no valid timestamp,\n"
                       "          using today's date instead.")
-                date = '{:%Y:%m:%d}'.format(datetime.datetime.today())
+                date = f'{datetime.datetime.today():%Y:%m:%d}'
             else:
                 print("          Found valid timestamp, using that.")
         return date
@@ -218,7 +218,7 @@ class ExifMov:
             if not date:
                 print("          Found no valid timestamp,\n"
                       "          using today's date instead.")
-                date = '{:%Y:%m:%d}'.format(datetime.datetime.today())
+                date = f'{datetime.datetime.today():%Y:%m:%d}'
             else:
                 print("          Found valid timestamp, using that.")
         return date
@@ -341,7 +341,7 @@ class PicMover:
         d = os.path.dirname(f)
         if not os.path.exists(d):
             os.makedirs(d)
-            print("Created path", f)
+            print(f"Created path: {d}")
 
     def set_gps(self, gps_option):
         if gps_option is not None:
@@ -354,7 +354,7 @@ class PicMover:
     def gps_query(self, coords):
         html = urlopen(
             "http://nominatim.openstreetmap.org/reverse?"
-            "format=xml&lat={0}&lon={1}".format(coords[0], coords[1]))
+            f"format=xml&lat={coords[0]}&lon={coords[1]}")
         return ET.fromstring(html.read())
 
     def get_gps_name(self, exif, metadata):
@@ -365,9 +365,9 @@ class PicMover:
             if xml is not None:
 
                 if self.verbose:
-                    print("Address from GPS: {0}".format(xml[0].text))
+                    print(f"Address from GPS: {xml[0].text}")
                 if len(xml) == 1:
-                    print("[Error] {0}".format(xml[0]))
+                    print(f"[Error] {xml[0]}")
                     return 'Unknown location'
                 for opt in self.gps_option:
                     if opt == 'full':
@@ -375,7 +375,7 @@ class PicMover:
                         break
                     elm = xml[1].find(opt)
                     if elm is not None:
-                        name += ", {0}".format(elm.text)
+                        name += f", {elm.text}"
 
         return name[2:]
 
@@ -409,7 +409,7 @@ class PicMover:
                 print(" -Moved to", writepath)
 
     def print_match(self, matches, idx):
-        print("Found events using match {0}: {1}".format(idx, matches[idx]))
+        print(f"Found events using match {idx}: {matches[idx]}")
 
     def add_path(self, metadata, exif, data):
         path = '/{0}/{1}/{2}/'.format(data.make, data.model, data.date[0:4])
@@ -427,10 +427,7 @@ class PicMover:
                         print("Found events matching the date. "
                               "Use one of these instead?")
                         for i, m in enumerate(matches):
-                            print("- [{0}] add to: {1}".format(
-                                i,
-                                self.strip_path(path_to_events, m, 0))
-                                  )
+                            print(f"- [{i}] add to: {self.strip_path(path_to_events, m, 0)}")
                         answer = input("- [n] to create a new.\n"
                                        "- [i] to ignore this event.\n"
                                        "- Type one of the options above: ")
@@ -449,11 +446,7 @@ class PicMover:
 
                 # Empty string means that it didn't have any valid gps info
                 if len(name):
-                    self.writepath[data.key] = '{0}{1} {2}/'.format(
-                        path,
-                        data.date,
-                        name
-                    )
+                    self.writepath[data.key] = f'{path}{data.date} {name}/'
                     break
 
             if answer.isdigit() and int(answer) < len(matches):
@@ -462,7 +455,7 @@ class PicMover:
                     matches[int(answer)],
                     0
                 )
-                self.writepath[data.key] = '{0}{1}/'.format(path, event)
+                self.writepath[data.key] = f'{path}{event}/'
                 break
             elif answer == "n":
                 name = ''
@@ -470,13 +463,12 @@ class PicMover:
                 # some matches.
                 if not self.date_only or num_matches:
                     # Ask for name
-                    name = input('[{0}] Name of event ( {1} <name> ): '
-                                 .format(data.filetype, data.date))
+                    name = input(f'[{data.filetype}] Name of event ( {data.date} <name> ): ')
                 if len(name):
                     # Add date + name
-                    path += '{0} {1}/'.format(data.date, name)
+                    path += f'{data.date} {name}/'
                 else:
-                    path += '{0}/'.format(data.date)
+                    path += f'{data.date}/'
 
                 # Add path to dict
                 self.writepath[data.key] = path
@@ -509,10 +501,10 @@ class PicMover:
             # avoid clumping pictures taken at different locations.
             gps = exif.gps(metadata)
             if gps:
-                misc = "{0}{1}".format(gps[0], gps[1])
+                misc = f"{gps[0]}{gps[1]}"
 
         # Create key to filename to avoid parsing metadata twice
-        key = "{0}{1}{2}{3}".format(make, model, date, misc)
+        key = f"{make}{model}{date}{misc}"
         self.img_keys[filename] = key
 
         if (key not in self.writepath) and (key not in self.ignore):
@@ -530,16 +522,14 @@ class PicMover:
         self.move_file(filename, path)
 
     def print_process(self, type_name, filename, count, total):
-        print("Processing {0} : {1} [{2}/{3}]"
-              .format(type_name, filename, count, total))
+        print(f"Processing {type_name} : {filename} [{count}/{total}]")
 
     # moves the file based on metadata (user comment and date)
     def exe(self):
         if HAS_NOTIFY_SUPPORT:
             Notify.init("picmover")
             notify = Notify.Notification.new(
-                "picmover", "Copying files from {0}"
-                .format(self.IMAGE_POOL_PATH)
+                "picmover", f"Copying files from {self.IMAGE_POOL_PATH}"
             )
             notify.show()
 
@@ -615,7 +605,7 @@ class PicMover:
         if HAS_NOTIFY_SUPPORT:
             notify = Notify.Notification.new(
                 "picmover",
-                "Done copying files from {0}".format(self.IMAGE_POOL_PATH)
+                f"Done copying files from {self.IMAGE_POOL_PATH}"
             )
             notify.show()
 
