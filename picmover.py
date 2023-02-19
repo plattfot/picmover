@@ -484,10 +484,10 @@ class PicMover:
     def add_file(self, filename, exif, filetype, target_path):
         # go to the correct folder e.g. ~/Nikon/D7000/2011/
         # Get the metadata from the image
-        metadata = GExiv2.Metadata.new()
-        if not metadata.open_path(path):
-            raise ValueError(f"Unable to open metadata for {path}")
         path = os.path.join(self.IMAGE_POOL_PATH, filename)
+        metadata = GExiv2.Metadata(path)
+        if not metadata:
+            raise ValueError(f"Unable to open metadata for '{path}'")
         # Extract usfull information from the metadata object
 
         make = exif.make(metadata)
