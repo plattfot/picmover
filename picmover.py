@@ -392,7 +392,7 @@ class PicMover:
 
         # Then move it to the new location
         # if that succeeded remove the image from the image pool
-        filepath = self.IMAGE_POOL_PATH+'/'+filename
+        filepath = os.path.join(self.IMAGE_POOL_PATH, filename)
         writepath = writepath + filename
         if not self.dry_run:
             # check to see if the directory exists, if not create it
@@ -412,10 +412,12 @@ class PicMover:
         print(f"Found events using match {idx}: {matches[idx]}")
 
     def add_path(self, metadata, exif, data):
-        path = '/{0}/{1}/{2}/'.format(data.make, data.model, data.date[0:4])
-        path_to_events = data.target_path + path
+        path = os.path.join(data.make, data.model, data.date[0:4])
+        path_to_events = os.path.join(data.target_path, path)
 
-        matches = glob.glob(path_to_events + data.date + '*')
+        matches = glob.glob(os.path.join(path_to_events, f'{data.date}*'))
+        print(f"path: {path}")
+        print(f"path to events: {path_to_events}")
         print(data.make, data.model)
         # Found potential matching events
         answer = 'n'
@@ -446,7 +448,7 @@ class PicMover:
 
                 # Empty string means that it didn't have any valid gps info
                 if len(name):
-                    self.writepath[data.key] = f'{path}{data.date} {name}/'
+                    self.writepath[data.key] = os.path.join(path, f'{data.date} {name}')
                     break
 
             if answer.isdigit() and int(answer) < len(matches):
@@ -455,7 +457,7 @@ class PicMover:
                     matches[int(answer)],
                     0
                 )
-                self.writepath[data.key] = f'{path}{event}/'
+                self.writepath[data.key] = os.join.path(path, event)
                 break
             elif answer == "n":
                 name = ''
@@ -464,11 +466,11 @@ class PicMover:
                 if not self.date_only or num_matches:
                     # Ask for name
                     name = input(f'[{data.filetype}] Name of event ( {data.date} <name> ): ')
+
                 if len(name):
-                    # Add date + name
-                    path += f'{data.date} {name}/'
+                    path = os.path.join(path, f'{data.date} {name}')
                 else:
-                    path += f'{data.date}/'
+                    path = os.path.join(path, data.date)
 
                 # Add path to dict
                 self.writepath[data.key] = path
@@ -483,9 +485,9 @@ class PicMover:
         # go to the correct folder e.g. ~/Nikon/D7000/2011/
         # Get the metadata from the image
         metadata = GExiv2.Metadata.new()
-        path = "{0}/{1}".format(self.IMAGE_POOL_PATH, filename)
         if not metadata.open_path(path):
             raise ValueError(f"Unable to open metadata for {path}")
+        path = os.path.join(self.IMAGE_POOL_PATH, filename)
         # Extract usfull information from the metadata object
 
         make = exif.make(metadata)
@@ -517,7 +519,7 @@ class PicMover:
         if self.ignore[key]:
             return
 
-        path = target_path + self.writepath[key] + subdir
+        path = os.path.join(target_path, self.writepath[key], subdir)
         # Move file to the new path
         self.move_file(filename, path)
 
