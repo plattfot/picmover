@@ -16,7 +16,7 @@
 (define-public picmover
   (package
     (name "picmover")
-    (version "1.2.5")
+    (version "1.2.6")
     (source
      (origin
      (method git-fetch)
