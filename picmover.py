@@ -155,11 +155,11 @@ class ExifImg:
                                             self.default_make))
 
     def date(self, metadata, filename):
-        if metadata.has_tag('Exif.Image.DateTimeOriginal'):
+        if metadata.try_has_tag('Exif.Image.DateTimeOriginal'):
             date = metadata.try_get_tag_string(
                 'Exif.Image.DateTimeOriginal'
             ).split()[0]
-        elif metadata.has_tag('Exif.Photo.DateTimeOriginal'):
+        elif metadata.try_has_tag('Exif.Photo.DateTimeOriginal'):
             date = metadata.try_get_tag_string(
                 'Exif.Photo.DateTimeOriginal'
             ).split()[0]
@@ -176,8 +176,8 @@ class ExifImg:
         return date
 
     def gps(self, metadata):
-        if metadata.has_tag('Exif.GPSInfo.GPSLatitude') and\
-           metadata.has_tag('Exif.GPSInfo.GPSLongitude'):
+        if metadata.try_has_tag('Exif.GPSInfo.GPSLatitude') and\
+           metadata.try_has_tag('Exif.GPSInfo.GPSLongitude'):
             return [metadata.get_gps_latitude(), metadata.get_gps_longitude()]
         else:
             return []
@@ -203,11 +203,11 @@ class ExifMov:
                                             self.default_make))
 
     def date(self, metadata, filename):
-        if metadata.has_tag('Xmp.video.DateTimeOriginal'):
+        if metadata.try_has_tag('Xmp.video.DateTimeOriginal'):
             date = metadata.try_get_tag_string(
                 'Xmp.video.DateTimeOriginal'
             ).split()[0]
-        elif metadata.has_tag('Xmp.video.CreateDate'):
+        elif metadata.try_has_tag('Xmp.video.CreateDate'):
             date = metadata.try_get_tag_string(
                 'Xmp.video.CreateDate'
             ).split('T')[0]
@@ -224,7 +224,7 @@ class ExifMov:
         return date
 
     def gps(self, metadata):
-        if metadata.has_tag('Xmp.video.GPSCoordinates'):
+        if metadata.try_has_tag('Xmp.video.GPSCoordinates'):
             coords_raw = metadata.try_get_tag_string(
                 'Xmp.video.GPSCoordinates'
             )
