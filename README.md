@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2023 Fredrik Salomonsson <plattfot@posteo.net>
+
+SPDX-License-Identifier: GPL-3.0-or-later
+-->
+
 # Picmover
 
 Moving pictures and videos from one location to another, using

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2023 Fredrik Salomonsson <plattfot@posteo.net>
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 DOC_SRC := picmover.1 picmover.5
 DOC := $(patsubst %, doc/%.gz, $(DOC_SRC))
 SOURCE := picmover.py
