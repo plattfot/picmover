@@ -16,7 +16,7 @@ import re
 import gi
 try:
     # for extracting metadata from jpeg and raw image files
-    gi.require_version('GExiv2', '0.10')
+    gi.require_version('GExiv2', '0.16')
     from gi.repository import GExiv2
 except ImportError:
     exit('You need to install gexiv2 first.')
