@@ -25,7 +25,7 @@ python.
 - [Limitations](#limitations)
   - [Tested cameras](#tested-cameras)
   - [OS support](#os-support)
-  
+
 ## Installation
 
 ### From source
@@ -97,28 +97,28 @@ Lines starting with # will be ignored.
 The syntax is KEYWORD VALUE.
 Here are all the keywords that the config file supports:
 
-####CameraMaker
+#### CameraMaker
 The default camera manufacturer which it will use if it cannot find it
 in the metadata. The default is set to *Unknown maker* .
 
-####CameraModel
+#### CameraModel
 The default camera model which it will use if it cannot find it in the
 metadata. The default is set to *Unknown model*.
 
-####Root
+#### Root
 Path to where the root of the destination is. Default is $HOME.
 
-####ImagePath
+#### ImagePath
 Path to where it should place the images relative to *Root*. The default is *Image*.
 
-####VideoPath
+#### VideoPath
 Path to where it should place the videos relative to *Root*. The default is *Video*
 
-####SourcePath
+#### SourcePath
 If this is set it will look for images and videos in this path instead
 of looking at the directory it was called from.
 
-####CheckIfMounted
+#### CheckIfMounted
 Check if the *Root* is mounted before proceeding. Useful if the root
 on a external/network attached drive. Will abort if the root isn't
 mounted.
